@@ -39,11 +39,13 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 
 ### Implementadas
 
-- [x] **RF1 – Autenticación:** inicio y cierre de sesión, control de intentos fallidos, bloqueos temporales y expiración de sesiones por inactividad.
+- [x] **RF1 – Inicio de sesión:** autenticación de usuarios administrativos, validación de credenciales, control de intentos fallidos y bloqueos temporales.
+- [x] **RF2 – Cierre de sesión:** finalización de la sesión autenticada, invalidación de la sesión y protección frente al acceso posterior sin autenticación.
+- [x] **Gestión de sesiones:** expiración automática después de 30 minutos de inactividad.
 
 ### En desarrollo / pendientes
 
-- [ ] **RF2 – Gestión de usuarios administrativos.**
+- [ ] Gestión de usuarios administrativos.
 - [ ] Gestión de clientes.
 - [ ] Gestión de tipos de membresía.
 - [ ] Gestión de membresías adquiridas.
@@ -157,10 +159,16 @@ php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 23 passed (112 assertions)
+Tests: 27 passed (125 assertions)
 ```
 
-Las pruebas actuales incluyen escenarios de autenticación, seguridad y gestión de sesiones.
+Las pruebas actuales incluyen:
+
+- Validación de credenciales y autenticación.
+- Control de intentos fallidos y bloqueos temporales.
+- Cierre de sesión e invalidación de sesiones.
+- Protección de rutas frente a usuarios no autenticados.
+- Expiración de sesiones por inactividad.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas pruebas antes de considerarse terminado.
 
@@ -168,7 +176,12 @@ Cada nuevo requerimiento funcional deberá contar con sus respectivas pruebas an
 
 GymFlow se encuentra en una etapa de desarrollo progresivo.
 
-Actualmente se ha completado la implementación y validación del primer requerimiento funcional, correspondiente a la autenticación de usuarios administrativos.
+Actualmente se han completado la implementación y validación de los dos primeros requerimientos funcionales:
+
+- **RF1:** Inicio de sesión.
+- **RF2:** Cierre de sesión.
+
+También se encuentra implementada y probada la gestión de expiración de sesiones por inactividad.
 
 Los siguientes módulos se desarrollarán siguiendo el mismo proceso:
 

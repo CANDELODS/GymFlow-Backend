@@ -19,7 +19,9 @@ Los clientes del gimnasio no tienen cuentas de acceso a la aplicación.
 - Bloqueo temporal después de intentos fallidos.
 - Limitación de solicitudes de autenticación.
 - Autenticación mediante sesiones y cookies.
-- Cierre de sesión.
+- Cierre de sesión e invalidación de la sesión autenticada.
+- Regeneración del token CSRF después del cierre de sesión.
+- Redirección al inicio de sesión después de cerrar sesión.
 - Expiración automática por inactividad.
 - Protección de rutas mediante autenticación.
 
@@ -33,6 +35,7 @@ Los clientes del gimnasio no tienen cuentas de acceso a la aplicación.
 | MySQL 8 | Almacenamiento de usuarios y sesiones. |
 | Vue CLI | Entorno de desarrollo del frontend. |
 | TypeScript | Desarrollo del frontend. |
+| Vue Router | Gestión de la navegación entre vistas. |
 | Axios | Comunicación HTTP entre Vue y Laravel. |
 
 ## 3. Componentes y responsabilidades
@@ -107,6 +110,28 @@ Responsabilidades:
 - Configurar el limitador de solicitudes de autenticación.
 - Delegar la autenticación a `AutenticarUsuarioAdministrativo`.
 
+### Cierre de sesión mediante Laravel Fortify
+
+Archivos de referencia:
+
+- `vendor/laravel/fortify/src/Http/Controllers/AuthenticatedSessionController.php`
+- `vendor/laravel/fortify/src/Http/Responses/LogoutResponse.php`
+
+GymFlow utiliza el mecanismo de cierre de sesión proporcionado por Laravel Fortify, evitando implementar un controlador personalizado para esta operación.
+
+La ruta `POST /logout` utiliza el middleware `auth:web`, por lo que requiere una sesión autenticada.
+
+El controlador de Fortify realiza las siguientes operaciones:
+
+1. Cierra la autenticación mediante el guard correspondiente.
+2. Invalida la sesión actual mediante `invalidate()`.
+3. Regenera el token CSRF mediante `regenerateToken()`.
+4. Devuelve la respuesta correspondiente a la solicitud.
+
+Cuando la solicitud espera JSON, Fortify responde con HTTP `204 No Content`.
+
+La navegación posterior hacia `/login` es responsabilidad del frontend mediante Vue Router.
+
 ### VerificarExpiracionSesion
 
 Archivo: `app/Http/Middleware/VerificarExpiracionSesion.php`
@@ -148,9 +173,17 @@ La ruta `GET /api/user` permite consultar los datos del usuario autenticado.
 
 ### Cierre de sesión
 
-Vue envía `POST /logout`.
+El proceso de cierre de sesión sigue este orden:
 
-Fortify cierra la autenticación e invalida la sesión actual.
+1. El usuario selecciona la opción de cerrar sesión en GymFlow.
+2. Vue envía una solicitud `POST /logout` mediante Axios.
+3. Laravel verifica la autenticación mediante el middleware `auth:web`.
+4. Fortify cierra la autenticación del usuario.
+5. Laravel invalida la sesión actual y regenera el token CSRF.
+6. Fortify devuelve una respuesta HTTP `204 No Content` cuando la solicitud espera JSON.
+7. Vue recibe la respuesta satisfactoria y utiliza Vue Router para redirigir al usuario a `/login`.
+
+Después del cierre de sesión, las solicitudes a rutas protegidas deben ser rechazadas mientras no exista una nueva autenticación.
 
 ## 5. Reglas de seguridad
 
@@ -180,12 +213,24 @@ Las solicitudes del frontend utilizan cookies y el encabezado `X-XSRF-TOKEN`.
 
 Axios se configura para enviar credenciales y gestionar automáticamente el token CSRF.
 
+Después del cierre de sesión, Laravel regenera el token CSRF para proteger las siguientes solicitudes.
+
 ### Expiración de sesiones
 
 - Duración máxima de inactividad: 30 minutos.
 - Cada solicitud autenticada válida actualiza `ultima_actividad`.
 - La expiración se comprueba en los grupos de middleware `web` y `api`.
 - Al expirar, Laravel invalida la sesión y rechaza el acceso con HTTP 401.
+
+### Cierre de sesión
+
+- La ruta de cierre de sesión utiliza el método HTTP `POST`.
+- Requiere autenticación mediante el guard `web`.
+- La sesión autenticada se invalida al cerrar sesión.
+- Se regenera el token CSRF.
+- El backend responde con HTTP `204 No Content` para solicitudes JSON.
+- El frontend redirige al usuario a `/login` después de recibir una respuesta satisfactoria.
+- Las rutas protegidas rechazan solicitudes posteriores sin autenticación.
 
 ## 6. Configuración de la integración
 
@@ -252,6 +297,14 @@ El backend Laravel utiliza:
 
 Ambos comparten hostname para facilitar el manejo de cookies durante el desarrollo local.
 
+### Vue Router
+
+El frontend utiliza Vue Router para gestionar la navegación entre las vistas de la aplicación.
+
+La instancia del enrutador se registra en `main.ts` y las rutas se definen en `src/router/index.ts`.
+
+Después de cerrar sesión correctamente, el frontend utiliza `router.push('/login')` para navegar hacia la vista de inicio de sesión sin recargar toda la aplicación.
+
 ## 7. Pruebas automatizadas
 
 Se implementaron pruebas de autenticación y sesiones mediante PHPUnit.
@@ -273,6 +326,17 @@ Se comprueban, entre otros escenarios:
 - Limitación de solicitudes por IP y por usuario e IP.
 - Duración exacta del bloqueo.
 
+### Pruebas de cierre de sesión
+
+Archivo: `tests/Feature/UsuarioAdministrativoLogoutTest.php`
+
+Se comprueban los siguientes escenarios:
+
+- Cierre de sesión exitoso de un usuario autenticado.
+- Rechazo del acceso a rutas protegidas después del cierre de sesión.
+- Rechazo de solicitudes de cierre de sesión sin autenticación.
+- Invalidación del identificador de la sesión anterior.
+
 ### Pruebas de sesiones
 
 Archivo: `tests/Feature/UsuarioAdministrativoSesionTest.php`
@@ -293,10 +357,18 @@ Se comprueban:
 Última ejecución completa:
 
 ```text
-Tests: 23 passed (112 assertions)
+Tests: 27 passed (125 assertions)
 ```
 
 Este resultado incluye las pruebas de ejemplo iniciales de Laravel.
+
+La suite completa se ejecuta mediante:
+
+```bash
+php artisan test
+```
+
+Cada nuevo requerimiento funcional deberá contar con sus respectivas pruebas antes de considerarse terminado.
 
 ## 8. Problemas encontrados y soluciones
 
