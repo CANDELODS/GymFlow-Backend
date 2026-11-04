@@ -19,6 +19,9 @@ return Application::configure(basePath: dirname(__DIR__))
         //como solicitudes de primera parte, permitiendo utilizar cookies, sesiones y protección CSRF.
         $middleware->statefulApi();
 
+        // Habilita la verificación del hash de contraseña almacenado en las sesiones autenticadas.
+        $middleware->authenticateSessions();
+
         // Agregamos la verificación de expiración al grupo web
         $middleware->appendToGroup('web', [
             VerificarExpiracionSesion::class,

@@ -16,8 +16,8 @@ class VerificarExpiracionSesion
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Comprobamos si existe un usuario autenticado mediante el guard web
-        if (Auth::guard('web')->check()) {
+        // Comprobamos si existe un usuario autenticado mediante el guard web y si tiene una sesión activa
+        if (Auth::guard('web')->check() && $request->hasSession()) {
 
             // Recuperamos la fecha de la última actividad registrada en la sesión
             $ultimaActividad = $request->session()->get('ultima_actividad');
