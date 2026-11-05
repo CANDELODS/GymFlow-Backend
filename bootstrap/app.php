@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\VerificarRolUsuarioAdministrativo;
 use App\Http\Middleware\VerificarExpiracionSesion;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Habilita la verificación del hash de contraseña almacenado en las sesiones autenticadas.
         $middleware->authenticateSessions();
+
+        // Registramos el alias del middleware para verificar los roles administrativos.
+        $middleware->alias([
+            'rol.administrativo' => VerificarRolUsuarioAdministrativo::class,
+        ]);
 
         // Agregamos la verificación de expiración al grupo web
         $middleware->appendToGroup('web', [

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\UsuarioAdministrativoController;
 use App\Http\Controllers\CambiarContrasenaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -16,4 +17,12 @@ Route::middleware('auth:sanctum')->group(function () {
         CambiarContrasenaController::class,
         'update',
     ])->name('usuario.contrasena.update');
+});
+
+// Rutas para la administración de usuarios administrativos.
+Route::middleware(['auth:sanctum', 'rol.administrativo:dueno'])->group(function () {
+
+    // Registra un nuevo usuario administrativo.
+    Route::post('/usuarios-administrativos', [UsuarioAdministrativoController::class, 'store'])
+        ->name('usuarios-administrativos.store');
 });
