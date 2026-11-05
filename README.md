@@ -60,10 +60,14 @@ implementados y validados progresivamente.
     sesiones anteriores.
 -   [x] **Gestión de sesiones:** expiración automática después de 30
     minutos de inactividad.
+-   [x] **RF4 -- Registrar usuario administrativo:** registro de nuevas
+    cuentas administrativas, asignación de roles, selección del estado
+    inicial y validación de los datos mediante reglas de seguridad.
 
 ### En desarrollo / pendientes
 
--   [ ] Gestión de usuarios administrativos.
+-   [ ] Consultar usuarios administrativos.
+-   [ ] Actualizar usuarios administrativos.
 -   [ ] Gestión de clientes.
 -   [ ] Gestión de tipos de membresía.
 -   [ ] Gestión de membresías adquiridas.
@@ -106,24 +110,15 @@ desarrollo cuando aporten valor a la solución.
 
 ## Documentación
 
-La documentación técnica del proyecto se encuentra en la carpeta
-[`docs/`](docs/).
+La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](docs/).
 
-  --------------------------------------------------------------------------------------------
-  Documento                                                Descripción
-  -------------------------------------------------------- -----------------------------------
-  [Autenticación](docs/modulos/autenticacion.md)           Implementación, componentes,
-                                                           configuraciones, reglas de
-                                                           seguridad y pruebas del módulo de
-                                                           autenticación.
+| Documento | Descripción |
+|---|---|
+| [Autenticación](docs/modulos/autenticacion.md) | Implementación, componentes, configuraciones, reglas de seguridad y pruebas del módulo de autenticación. |
+| [Administración de usuarios](docs/modulos/administracion-usuarios.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de administración de usuarios administrativos. |
+| [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
 
-  [ADR-001: Autenticación con                              Decisiones arquitectónicas que
-  Sanctum](docs/decisiones/001-autenticacion-sanctum.md)   justifican el mecanismo de
-                                                           autenticación seleccionado.
-  --------------------------------------------------------------------------------------------
-
-La documentación se actualizará conforme se implementen y validen nuevos
-requerimientos funcionales.
+La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
 
 ## Requisitos
 
@@ -203,7 +198,7 @@ herd php artisan test
 Último resultado registrado:
 
 ``` text
-Tests: 35 passed (156 assertions)
+Tests: 49 passed (225 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -216,6 +211,10 @@ Las pruebas actuales incluyen:
 -   Cambio de contraseña y validación de sus reglas.
 -   Almacenamiento seguro de contraseñas mediante hashing.
 -   Rechazo de sesiones que conservan un hash de contraseña anterior.
+-   Registro de usuarios administrativos y asignación de roles.
+-   Protección de las operaciones administrativas según el rol.
+-   Validación de datos y política de contraseñas durante el registro.
+-   Protección de información sensible en las respuestas de la API.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas
 pruebas antes de considerarse terminado.
@@ -224,12 +223,13 @@ pruebas antes de considerarse terminado.
 
 GymFlow se encuentra en una etapa de desarrollo progresivo.
 
-Actualmente se han completado la implementación y validación de los tres
+Actualmente se han completado la implementación y validación de los cuatro
 primeros requerimientos funcionales:
 
 -   **RF1:** Inicio de sesión.
 -   **RF2:** Cierre de sesión.
 -   **RF3:** Cambio de contraseña.
+-   **RF4:** Registrar usuario administrativo.
 
 También se encuentra implementada y probada la gestión de expiración de
 sesiones por inactividad.
