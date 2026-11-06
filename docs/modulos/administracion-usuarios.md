@@ -4,14 +4,16 @@
 
 El módulo de administración de usuarios administrativos permite gestionar las cuentas de acceso al sistema GymFlow.
 
-Actualmente, contempla el registro de nuevas cuentas administrativas, permitiendo asignar uno de los roles disponibles y establecer el estado inicial de la cuenta.
+Actualmente, contempla el registro y la consulta de cuentas administrativas.
+
+El registro permite asignar uno de los roles disponibles y establecer el estado inicial de la cuenta. La consulta permite a los usuarios con rol Dueño visualizar las cuentas registradas, buscar por nombre de usuario y consultar los resultados mediante paginación.
 
 El sistema contempla dos roles administrativos:
 
 - **Dueño (`dueno`):** usuario con permisos administrativos superiores.
 - **Empleado (`empleado`):** usuario con permisos operativos según las restricciones del sistema.
 
-El registro de nuevas cuentas está restringido exclusivamente a usuarios autenticados con el rol `dueno`.
+El registro y la consulta de cuentas están restringidos exclusivamente a usuarios autenticados con el rol `dueno`.
 
 ### Funcionalidades implementadas
 
@@ -21,6 +23,11 @@ El registro de nuevas cuentas está restringido exclusivamente a usuarios autent
 - Validación de unicidad del nombre de usuario.
 - Validación de la política de contraseñas.
 - Protección de las operaciones mediante autenticación y autorización.
+- Consulta de usuarios administrativos.
+- Búsqueda por coincidencias parciales del nombre de usuario.
+- Paginación de cinco registros por página.
+- Conservación de los filtros de búsqueda al cambiar de página.
+- Consulta del rol y estado de cada cuenta administrativa.
 - Exclusión de información sensible en las respuestas de la API.
 
 ## 2. Tecnologías utilizadas
@@ -90,13 +97,47 @@ La confirmación de contraseña no se almacena.
 
 El hashing de la contraseña es realizado automáticamente mediante el cast `hashed` definido en el modelo `UsuarioAdministrativo`.
 
+### ConsultarUsuariosAdministrativosRequest
+
+Archivo: `app/Http/Requests/UsuarioAdministrativo/ConsultarUsuariosAdministrativosRequest.php`
+
+Valida y autoriza las solicitudes de consulta de usuarios administrativos.
+
+**Autorización:**
+
+Comprueba que el usuario autenticado tenga el rol `dueno`.
+
+**Parámetros validados:**
+
+- `usuario`: opcional, de tipo texto y con un máximo de 100 caracteres.
+- `page`: opcional, debe ser un número entero mayor o igual a 1.
+
+También proporciona mensajes de validación personalizados en español.
+
+### ConsultarUsuariosAdministrativos
+
+Archivo: `app/Actions/UsuarioAdministrativo/ConsultarUsuariosAdministrativos.php`
+
+Centraliza la lógica de consulta de usuarios administrativos.
+
+Responsabilidades:
+
+1. Inicializar una consulta sobre el modelo `UsuarioAdministrativo`.
+2. Aplicar el filtro por nombre de usuario cuando se proporciona.
+3. Buscar mediante coincidencias parciales utilizando `LIKE`.
+4. Ordenar los resultados alfabéticamente por nombre de usuario.
+5. Paginar los resultados en grupos de cinco registros.
+6. Conservar los parámetros de consulta al cambiar de página mediante `withQueryString()`.
+
+Devuelve una instancia de `LengthAwarePaginator`, que proporciona los registros y la información necesaria para construir la paginación.
+
 ### UsuarioAdministrativoController
 
 Archivo: `app/Http/Controllers/UsuarioAdministrativoController.php`
 
 Coordina las solicitudes HTTP relacionadas con la administración de usuarios administrativos.
 
-Actualmente implementa el método `store()`.
+Actualmente implementa los métodos `index()` y `store()`.
 
 Responsabilidades:
 
@@ -105,6 +146,10 @@ Responsabilidades:
 3. Ejecutar la acción `RegistrarUsuarioAdministrativo`.
 4. Transformar el usuario creado mediante `UsuarioAdministrativoResource`.
 5. Devolver una respuesta JSON con HTTP `201 Created`.
+6. Gestionar las solicitudes de consulta mediante `ConsultarUsuariosAdministrativosRequest`.
+7. Ejecutar la acción `ConsultarUsuariosAdministrativos`.
+8. Transformar los resultados mediante `UsuarioAdministrativoResource::collection()`.
+9. Devolver los registros junto con la información de paginación.
 
 ### UsuarioAdministrativoResource
 
@@ -121,7 +166,7 @@ Atributos expuestos:
 
 Se excluyen los atributos internos y sensibles, como la contraseña, los intentos fallidos y la fecha de bloqueo.
 
-Este Resource está diseñado para reutilizarse en las futuras operaciones de consulta y actualización de usuarios administrativos.
+Este Resource se reutiliza en las operaciones de registro y consulta de usuarios administrativos.
 
 ### VerificarRolUsuarioAdministrativo
 
@@ -197,13 +242,86 @@ Los valores son ilustrativos.
 | `403 Forbidden` | El usuario autenticado no tiene el rol requerido. |
 | `422 Unprocessable Entity` | Los datos enviados incumplen las reglas de validación. |
 
-## 5. Reglas de seguridad
+## 5. Flujo de consulta
+
+La consulta de usuarios administrativos se realiza mediante una solicitud HTTP `GET`.
+
+### Endpoint
+
+`GET /api/usuarios-administrativos`
+
+**Middlewares aplicados:**
+
+- `auth:sanctum`: requiere autenticación.
+- `rol.administrativo:dueno`: permite únicamente el acceso a usuarios con rol `dueno`.
+
+**Nombre de ruta:**
+
+`usuarios-administrativos.index`
+
+### Parámetros de consulta
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `usuario` | String | No | Nombre de usuario utilizado para realizar la búsqueda parcial. |
+| `page` | Integer | No | Número de página que se desea consultar. |
+
+La paginación devuelve cinco registros por página. Si no se proporciona el parámetro `page`, se consulta la primera página.
+
+### Proceso de consulta
+
+El proceso sigue este orden:
+
+1. El dueño solicita consultar los usuarios administrativos.
+2. El frontend envía una solicitud `GET /api/usuarios-administrativos`.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarRolUsuarioAdministrativo` comprueba que el usuario tenga el rol `dueno`.
+5. `ConsultarUsuariosAdministrativosRequest` autoriza la operación y valida los parámetros recibidos.
+6. `UsuarioAdministrativoController` obtiene los filtros validados.
+7. El controlador ejecuta la acción `ConsultarUsuariosAdministrativos`.
+8. La acción construye la consulta, aplica los filtros y pagina los resultados.
+9. `UsuarioAdministrativoResource::collection()` transforma los registros.
+10. El backend devuelve HTTP `200 OK` con los usuarios encontrados y la información de paginación.
+
+### Búsqueda
+
+La búsqueda se realiza mediante coincidencias parciales del nombre de usuario.
+
+Por ejemplo:
+
+`GET /api/usuarios-administrativos?usuario=cand`
+
+La consulta devuelve los usuarios cuyos nombres contienen el texto proporcionado.
+
+### Paginación
+
+La consulta utiliza cinco registros por página.
+
+Para acceder a otra página:
+
+`GET /api/usuarios-administrativos?page=2`
+
+También es posible conservar el filtro de búsqueda:
+
+`GET /api/usuarios-administrativos?usuario=cand&page=2`
+
+La acción utiliza `withQueryString()` para conservar los parámetros de consulta al generar los enlaces de paginación.
+
+### Respuestas de error
+
+| Código HTTP | Situación |
+|---|---|
+| `401 Unauthorized` | El usuario no está autenticado. |
+| `403 Forbidden` | El usuario autenticado no tiene el rol requerido. |
+| `422 Unprocessable Entity` | Los parámetros enviados incumplen las reglas de validación. |
+
+## 6. Reglas de seguridad
 
 ### Autorización por roles
 
-El registro de usuarios administrativos está restringido al rol `dueno`.
+El registro y la consulta de usuarios administrativos están restringidos al rol `dueno`.
 
-La autorización se comprueba mediante el middleware de la ruta y la autorización definida en la Request.
+La autorización se comprueba mediante el middleware de la ruta y la autorización definida en las respectivas Requests.
 
 El frontend no constituye el mecanismo de seguridad: la restricción se aplica en el backend.
 
@@ -236,21 +354,32 @@ Las respuestas de la API utilizan `UsuarioAdministrativoResource` para exponer �
 
 No se devuelven contraseñas, contadores de intentos fallidos ni fechas de bloqueo.
 
-## 6. Rutas API
+### Protección de consultas administrativas
+
+La consulta de usuarios administrativos está restringida al rol `dueno`.
+
+La autorización se comprueba mediante el middleware de la ruta y la autorización definida en `ConsultarUsuariosAdministrativosRequest`.
+
+La respuesta utiliza `UsuarioAdministrativoResource` para evitar exponer información sensible, como contraseñas, intentos fallidos y fechas de bloqueo.
+
+## 7. Rutas API
 
 Las rutas relacionadas con la administración de usuarios administrativos se encuentran en:
 
 `routes/api.php`
 
-Actualmente se encuentra implementada:
+Actualmente se encuentran implementadas:
 
 | Método | Endpoint | Nombre | Operación |
 |---|---|---|---|
 | POST | `/api/usuarios-administrativos` | `usuarios-administrativos.store` | Registrar usuario administrativo. |
+| GET | `/api/usuarios-administrativos` | `usuarios-administrativos.index` | Consultar usuarios administrativos. |
 
-La ruta está protegida mediante autenticación Sanctum y autorización por rol.
+Las rutas están protegidas mediante autenticación Sanctum y autorización por rol.
 
-## 7. Pruebas automatizadas
+## 8. Pruebas automatizadas
+
+### Pruebas de registro de usuarios administrativos
 
 Archivo: `tests/Feature/RegistrarUsuarioAdministrativoTest.php`
 
@@ -273,12 +402,33 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento del r
 13. Un dueño puede registrar una cuenta desactivada.
 14. Se comprueban los valores iniciales de seguridad del usuario registrado.
 
+### Pruebas de consulta de usuarios administrativos
+
+Archivo: `tests/Feature/ConsultarUsuariosAdministrativosTest.php`
+
+Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la consulta.
+
+**Escenarios comprobados:**
+
+1. Un dueño puede consultar los usuarios administrativos.
+2. Un empleado no puede consultar los usuarios administrativos.
+3. Un usuario no autenticado no puede realizar la consulta.
+4. Se permite buscar usuarios mediante coincidencias parciales.
+5. Una búsqueda sin coincidencias devuelve una colección vacía.
+6. Los resultados se paginan de cinco en cinco.
+7. La búsqueda se conserva al cambiar de página.
+8. No se permiten números de página menores que uno.
+9. No se permiten valores no enteros en el número de página.
+10. El nombre de usuario debe ser de tipo texto.
+11. El nombre de usuario no puede superar los cien caracteres.
+12. La respuesta no expone información sensible de los usuarios.
+
 ### Resultado de las pruebas
 
 Última ejecución completa:
 
 ```text
-Tests: 49 passed (225 assertions)
+Tests: 61 passed (289 assertions)
 ```
 
 Las pruebas de RF4 se ejecutan mediante:
@@ -287,19 +437,24 @@ Las pruebas de RF4 se ejecutan mediante:
 herd php artisan test --filter=RegistrarUsuarioAdministrativoTest
 ```
 
+Las pruebas de RF5 se ejecutan mediante:
+
+```bash
+herd php artisan test --filter=ConsultarUsuariosAdministrativosTest
+```
+
 La suite completa del proyecto se ejecuta mediante:
 
 ```bash
 herd php artisan test
 ```
 
-## 8. Estado del módulo
+## 9. Estado del módulo
 
-El registro de usuarios administrativos (RF4) se encuentra implementado y validado mediante pruebas automatizadas.
+El módulo de administración de usuarios administrativos cuenta con las funcionalidades de registro (RF4) y consulta (RF5), implementadas y validadas mediante pruebas automatizadas.
 
 Las siguientes funcionalidades se desarrollarán progresivamente:
 
-- Consultar usuarios administrativos.
 - Actualizar usuarios administrativos.
 
 Cada nuevo requerimiento deberá contar con su correspondiente implementación, pruebas automatizadas y documentación técnica antes de considerarse terminado.

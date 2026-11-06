@@ -63,10 +63,12 @@ implementados y validados progresivamente.
 -   [x] **RF4 -- Registrar usuario administrativo:** registro de nuevas
     cuentas administrativas, asignación de roles, selección del estado
     inicial y validación de los datos mediante reglas de seguridad.
+-   [x] **RF5 -- Consultar usuarios administrativos:** consulta de cuentas
+    administrativas, búsqueda por nombre de usuario mediante coincidencias
+    parciales y paginación de cinco registros por página. Acceso restringido al rol Dueño.
 
 ### En desarrollo / pendientes
 
--   [ ] Consultar usuarios administrativos.
 -   [ ] Actualizar usuarios administrativos.
 -   [ ] Gestión de clientes.
 -   [ ] Gestión de tipos de membresía.
@@ -198,7 +200,7 @@ herd php artisan test
 Último resultado registrado:
 
 ``` text
-Tests: 49 passed (225 assertions)
+Tests: 61 passed (289 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -215,6 +217,10 @@ Las pruebas actuales incluyen:
 -   Protección de las operaciones administrativas según el rol.
 -   Validación de datos y política de contraseñas durante el registro.
 -   Protección de información sensible en las respuestas de la API.
+-   Consulta y búsqueda de usuarios administrativos.
+-   Paginación de resultados y conservación de filtros entre páginas.
+-   Validación de parámetros de búsqueda y paginación.
+-   Restricción de consultas administrativas según el rol.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas
 pruebas antes de considerarse terminado.
@@ -223,13 +229,14 @@ pruebas antes de considerarse terminado.
 
 GymFlow se encuentra en una etapa de desarrollo progresivo.
 
-Actualmente se han completado la implementación y validación de los cuatro
+Actualmente se han completado la implementación y validación de los cinco
 primeros requerimientos funcionales:
 
 -   **RF1:** Inicio de sesión.
 -   **RF2:** Cierre de sesión.
 -   **RF3:** Cambio de contraseña.
 -   **RF4:** Registrar usuario administrativo.
+-   **RF5:** Consultar usuarios administrativos.
 
 También se encuentra implementada y probada la gestión de expiración de
 sesiones por inactividad.
