@@ -25,4 +25,8 @@ Route::middleware(['auth:sanctum', 'rol.administrativo:dueno'])->group(function 
     // Registra un nuevo usuario administrativo.
     Route::post('/usuarios-administrativos', [UsuarioAdministrativoController::class, 'store'])
         ->name('usuarios-administrativos.store');
+
+    // Consulta los usuarios administrativos registrados.
+    Route::get('/usuarios-administrativos', [UsuarioAdministrativoController::class, 'index'])
+        ->name('usuarios-administrativos.index');
 });
