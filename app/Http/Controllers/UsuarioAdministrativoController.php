@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\UsuarioAdministrativo\ActualizarUsuarioAdministrativo;
+use App\Actions\UsuarioAdministrativo\CambiarEstadoUsuarioAdministrativo;
 use App\Actions\UsuarioAdministrativo\ConsultarUsuariosAdministrativos;
-use App\Http\Requests\UsuarioAdministrativo\ConsultarUsuariosAdministrativosRequest;
-use App\Http\Resources\UsuarioAdministrativoResource;
 use App\Actions\UsuarioAdministrativo\RegistrarUsuarioAdministrativo;
+use App\Http\Requests\UsuarioAdministrativo\ActualizarUsuarioAdministrativoRequest;
+use App\Http\Requests\UsuarioAdministrativo\CambiarEstadoUsuarioAdministrativoRequest;
+use App\Http\Requests\UsuarioAdministrativo\ConsultarUsuariosAdministrativosRequest;
 use App\Http\Requests\UsuarioAdministrativo\RegistrarUsuarioAdministrativoRequest;
+use App\Http\Resources\UsuarioAdministrativoResource;
+use App\Models\UsuarioAdministrativo;
 
 class UsuarioAdministrativoController extends Controller
 {
-
     /**
      * Display a listing of the resource.
      */
@@ -43,18 +47,44 @@ class UsuarioAdministrativoController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Update the specified resource in storage.
      */
-    public function show(string $id)
-    {
-        //
+    public function update(
+        ActualizarUsuarioAdministrativoRequest $request,
+        UsuarioAdministrativo $usuarioAdministrativo,
+        ActualizarUsuarioAdministrativo $actualizarUsuario
+    ) {
+        // Ejecutamos la acción con los datos previamente validados.
+        $usuario = $actualizarUsuario->ejecutar(
+            $usuarioAdministrativo,
+            $request->validated()
+        );
+
+        // Devolvemos el usuario actualizado.
+        return response()->json([
+            'mensaje' => 'Usuario administrativo actualizado correctamente.',
+            'usuario' => new UsuarioAdministrativoResource($usuario),
+        ], 200);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Cambia el estado del usuario administrativo.
      */
-    public function update(string $id)
-    {
-        //
+    public function cambiarEstado(
+        CambiarEstadoUsuarioAdministrativoRequest $request,
+        UsuarioAdministrativo $usuarioAdministrativo,
+        CambiarEstadoUsuarioAdministrativo $cambiarEstado
+    ) {
+        // Ejecutamos la acción con el nuevo estado validado.
+        $usuario = $cambiarEstado->ejecutar(
+            $usuarioAdministrativo,
+            $request->validated()['activo']
+        );
+
+        // Devolvemos el usuario con su estado actualizado.
+        return response()->json([
+            'mensaje' => 'Estado del usuario administrativo actualizado correctamente.',
+            'usuario' => new UsuarioAdministrativoResource($usuario),
+        ], 200);
     }
 }

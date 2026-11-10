@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\VerificarUsuarioActivo;
 use App\Http\Middleware\VerificarRolUsuarioAdministrativo;
 use App\Http\Middleware\VerificarExpiracionSesion;
 use Illuminate\Foundation\Application;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registramos el alias del middleware para verificar los roles administrativos.
         $middleware->alias([
             'rol.administrativo' => VerificarRolUsuarioAdministrativo::class,
+            'usuario.activo' => VerificarUsuarioActivo::class,
         ]);
 
         // Agregamos la verificación de expiración al grupo web
