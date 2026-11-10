@@ -66,10 +66,13 @@ implementados y validados progresivamente.
 -   [x] **RF5 -- Consultar usuarios administrativos:** consulta de cuentas
     administrativas, búsqueda por nombre de usuario mediante coincidencias
     parciales y paginación de cinco registros por página. Acceso restringido al rol Dueño.
+-   [x] **RF6 -- Actualizar y gestionar estado de usuarios administrativos:**
+    actualización del nombre de usuario, rol y contraseña opcional; activación
+    y desactivación de cuentas, con protección del último dueño activo,
+    restricción de auto-desactivación y control de acceso de cuentas inactivas.
 
 ### En desarrollo / pendientes
 
--   [ ] Actualizar usuarios administrativos.
 -   [ ] Gestión de clientes.
 -   [ ] Gestión de tipos de membresía.
 -   [ ] Gestión de membresías adquiridas.
@@ -200,7 +203,7 @@ herd php artisan test
 Último resultado registrado:
 
 ``` text
-Tests: 61 passed (289 assertions)
+Tests: 85 passed (365 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -220,7 +223,11 @@ Las pruebas actuales incluyen:
 -   Consulta y búsqueda de usuarios administrativos.
 -   Paginación de resultados y conservación de filtros entre páginas.
 -   Validación de parámetros de búsqueda y paginación.
--   Restricción de consultas administrativas según el rol.
+-   Restricción de consultas y modificaciones administrativas según el rol.
+-   Actualización de usuarios administrativos y cambio opcional de contraseña.
+-   Activación y desactivación de cuentas administrativas.
+-   Protección del último dueño activo y de operaciones concurrentes.
+-   Revocación del acceso de sesiones pertenecientes a cuentas desactivadas.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas
 pruebas antes de considerarse terminado.
@@ -229,7 +236,7 @@ pruebas antes de considerarse terminado.
 
 GymFlow se encuentra en una etapa de desarrollo progresivo.
 
-Actualmente se han completado la implementación y validación de los cinco
+Actualmente se han completado la implementación y validación de los seis
 primeros requerimientos funcionales:
 
 -   **RF1:** Inicio de sesión.
@@ -237,6 +244,7 @@ primeros requerimientos funcionales:
 -   **RF3:** Cambio de contraseña.
 -   **RF4:** Registrar usuario administrativo.
 -   **RF5:** Consultar usuarios administrativos.
+-   **RF6:** Actualizar y gestionar el estado de usuarios administrativos.
 
 También se encuentra implementada y probada la gestión de expiración de
 sesiones por inactividad.

@@ -4,16 +4,16 @@
 
 El módulo de administración de usuarios administrativos permite gestionar las cuentas de acceso al sistema GymFlow.
 
-Actualmente, contempla el registro y la consulta de cuentas administrativas.
+Actualmente, contempla el registro, la consulta, la actualización de información y la gestión del estado de las cuentas administrativas.
 
-El registro permite asignar uno de los roles disponibles y establecer el estado inicial de la cuenta. La consulta permite a los usuarios con rol Dueño visualizar las cuentas registradas, buscar por nombre de usuario y consultar los resultados mediante paginación.
+El registro permite asignar uno de los roles disponibles y establecer el estado inicial de la cuenta. La consulta permite a los usuarios con rol Dueño visualizar las cuentas registradas, buscar por nombre de usuario y consultar los resultados mediante paginación. La actualización permite modificar el nombre de usuario, el rol y, opcionalmente, la contraseña. La gestión del estado permite activar o desactivar cuentas, aplicando restricciones para proteger el acceso administrativo al sistema.
 
 El sistema contempla dos roles administrativos:
 
 - **Dueño (`dueno`):** usuario con permisos administrativos superiores.
 - **Empleado (`empleado`):** usuario con permisos operativos según las restricciones del sistema.
 
-El registro y la consulta de cuentas están restringidos exclusivamente a usuarios autenticados con el rol `dueno`.
+El registro, la consulta, la actualización y la gestión del estado de las cuentas están restringidos exclusivamente a usuarios autenticados con el rol `dueno`.
 
 ### Funcionalidades implementadas
 
@@ -29,6 +29,13 @@ El registro y la consulta de cuentas están restringidos exclusivamente a usuari
 - Conservación de los filtros de búsqueda al cambiar de página.
 - Consulta del rol y estado de cada cuenta administrativa.
 - Exclusión de información sensible en las respuestas de la API.
+- Actualización del nombre de usuario y del rol de cuentas administrativas.
+- Actualización opcional de la contraseña, conservando la actual cuando no se proporciona una nueva.
+- Activación y desactivación de cuentas administrativas.
+- Protección para impedir la desactivación de la propia cuenta.
+- Protección para garantizar que siempre exista al menos un dueño activo.
+- Bloqueo de acceso a rutas protegidas e invalidación de sesión cuando una cuenta es desactivada.
+- Protección de las operaciones concurrentes que podrían dejar el sistema sin dueños activos.
 
 ## 2. Tecnologías utilizadas
 
@@ -131,13 +138,80 @@ Responsabilidades:
 
 Devuelve una instancia de `LengthAwarePaginator`, que proporciona los registros y la información necesaria para construir la paginación.
 
+### ActualizarUsuarioAdministrativoRequest
+
+Archivo: `app/Http/Requests/UsuarioAdministrativo/ActualizarUsuarioAdministrativoRequest.php`
+
+Valida y autoriza las solicitudes de actualización de usuarios administrativos.
+
+**Autorización:**
+
+Comprueba que el usuario autenticado tenga el rol `dueno`.
+
+**Campos validados:**
+
+- `usuario`: obligatorio, de tipo texto, entre 5 y 100 caracteres y único, exceptuando el registro que se está actualizando.
+- `password`: opcional; cuando se envía una nueva contraseña, debe ser de tipo texto, no superar los 255 caracteres y cumplir la política de seguridad.
+- `password_confirmation`: obligatoria cuando se envía `password` y debe coincidir con ella.
+- `rol`: obligatorio y limitado a `dueno` y `empleado`.
+
+### ActualizarUsuarioAdministrativo
+
+Archivo: `app/Actions/UsuarioAdministrativo/ActualizarUsuarioAdministrativo.php`
+
+Centraliza la actualización de la información de una cuenta administrativa.
+
+Responsabilidades:
+
+1. Recibir el usuario que se actualizará y los datos previamente validados.
+2. Ejecutar la operación dentro de una transacción.
+3. Bloquear los registros de usuarios administrativos para proteger las reglas relacionadas con los dueños activos.
+4. Impedir que el sistema se quede sin dueños activos cuando se intenta cambiar el rol del último dueño activo a `empleado`.
+5. Actualizar el nombre de usuario y el rol.
+6. Actualizar la contraseña únicamente cuando se proporciona una nueva.
+7. Guardar y devolver el usuario actualizado.
+
+El hashing de la nueva contraseña se realiza mediante el cast `hashed` del modelo `UsuarioAdministrativo`.
+
+### CambiarEstadoUsuarioAdministrativoRequest
+
+Archivo: `app/Http/Requests/UsuarioAdministrativo/CambiarEstadoUsuarioAdministrativoRequest.php`
+
+Autoriza la operación únicamente para usuarios con rol `dueno` y valida que `activo` sea obligatorio y represente un valor booleano válido.
+
+### CambiarEstadoUsuarioAdministrativo
+
+Archivo: `app/Actions/UsuarioAdministrativo/CambiarEstadoUsuarioAdministrativo.php`
+
+Centraliza la activación y desactivación de cuentas administrativas.
+
+Responsabilidades:
+
+1. Ejecutar el cambio de estado dentro de una transacción.
+2. Bloquear los registros de usuarios administrativos para proteger la regla del último dueño activo.
+3. Impedir que un dueño desactive su propia cuenta.
+4. Impedir que se desactive al último dueño activo.
+5. Guardar y devolver el usuario con el estado actualizado.
+
+La acción permite activar cuentas desactivadas y desactivar cuentas siempre que se respeten las restricciones anteriores.
+
+### VerificarUsuarioActivo
+
+Archivo: `app/Http/Middleware/VerificarUsuarioActivo.php`
+
+Comprueba que la cuenta del usuario autenticado continúe activa antes de permitir el acceso a rutas protegidas.
+
+Si la cuenta está desactivada, cierra la sesión, invalida sus datos y el token CSRF cuando existe una sesión, y devuelve HTTP `403 Forbidden`.
+
+Este control permite revocar el acceso de una sesión que ya estaba iniciada cuando un dueño desactiva la cuenta.
+
 ### UsuarioAdministrativoController
 
 Archivo: `app/Http/Controllers/UsuarioAdministrativoController.php`
 
 Coordina las solicitudes HTTP relacionadas con la administración de usuarios administrativos.
 
-Actualmente implementa los métodos `index()` y `store()`.
+Implementa los métodos `index()`, `store()`, `update()` y `cambiarEstado()`.
 
 Responsabilidades:
 
@@ -150,6 +224,10 @@ Responsabilidades:
 7. Ejecutar la acción `ConsultarUsuariosAdministrativos`.
 8. Transformar los resultados mediante `UsuarioAdministrativoResource::collection()`.
 9. Devolver los registros junto con la información de paginación.
+10. Gestionar las solicitudes de actualización mediante `ActualizarUsuarioAdministrativoRequest`.
+11. Ejecutar la acción `ActualizarUsuarioAdministrativo` y devolver el usuario actualizado mediante `UsuarioAdministrativoResource`.
+12. Gestionar los cambios de estado mediante `CambiarEstadoUsuarioAdministrativoRequest`.
+13. Ejecutar la acción `CambiarEstadoUsuarioAdministrativo` y devolver el estado actualizado mediante `UsuarioAdministrativoResource`.
 
 ### UsuarioAdministrativoResource
 
@@ -194,6 +272,7 @@ El registro de usuarios administrativos se realiza mediante una solicitud HTTP `
 **Middlewares aplicados:**
 
 - `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
 - `rol.administrativo:dueno`: permite únicamente el acceso a usuarios con rol `dueno`.
 
 **Nombre de ruta:**
@@ -253,6 +332,7 @@ La consulta de usuarios administrativos se realiza mediante una solicitud HTTP `
 **Middlewares aplicados:**
 
 - `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
 - `rol.administrativo:dueno`: permite únicamente el acceso a usuarios con rol `dueno`.
 
 **Nombre de ruta:**
@@ -315,11 +395,65 @@ La acción utiliza `withQueryString()` para conservar los parámetros de consult
 | `403 Forbidden` | El usuario autenticado no tiene el rol requerido. |
 | `422 Unprocessable Entity` | Los parámetros enviados incumplen las reglas de validación. |
 
-## 6. Reglas de seguridad
+## 6. Flujo de actualización y gestión del estado
+
+La actualización de información y el cambio de estado se realizan mediante solicitudes HTTP `PATCH` independientes.
+
+### Actualizar información
+
+**Endpoint:** `PATCH /api/usuarios-administrativos/{usuarioAdministrativo}`
+
+**Nombre de ruta:** `usuarios-administrativos.update`
+
+Permite modificar el nombre de usuario y el rol. También permite establecer una nueva contraseña enviando `password` y `password_confirmation`; si no se envía una contraseña nueva, se conserva la actual.
+
+**Proceso:**
+
+1. El dueño envía la solicitud `PATCH` con los datos que desea actualizar.
+2. Laravel comprueba la autenticación y que la cuenta del solicitante esté activa.
+3. El middleware de rol y `ActualizarUsuarioAdministrativoRequest` restringen la operación al rol `dueno`.
+4. La Request valida los datos recibidos.
+5. `UsuarioAdministrativoController` ejecuta `ActualizarUsuarioAdministrativo`.
+6. La acción aplica las reglas de protección del último dueño activo y guarda los cambios dentro de una transacción.
+7. El backend devuelve HTTP `200 OK` con el usuario actualizado mediante `UsuarioAdministrativoResource`.
+
+### Cambiar estado de una cuenta
+
+**Endpoint:** `PATCH /api/usuarios-administrativos/{usuarioAdministrativo}/estado`
+
+**Nombre de ruta:** `usuarios-administrativos.estado`
+
+Recibe el campo booleano `activo`: `true` para activar la cuenta y `false` para desactivarla.
+
+**Proceso:**
+
+1. El dueño envía la solicitud `PATCH` con el nuevo estado.
+2. Laravel comprueba la autenticación y que la cuenta del solicitante esté activa.
+3. El middleware de rol y `CambiarEstadoUsuarioAdministrativoRequest` restringen la operación al rol `dueno` y validan el estado.
+4. El controlador ejecuta `CambiarEstadoUsuarioAdministrativo`.
+5. La acción aplica las restricciones de auto-desactivación y protección del último dueño activo dentro de una transacción.
+6. El backend devuelve HTTP `200 OK` con el usuario y su estado actualizado.
+
+### Reglas para proteger a los dueños activos
+
+- Un dueño no puede desactivar su propia cuenta.
+- Un dueño puede cambiar su propio rol si existe otro dueño activo.
+- No se puede desactivar ni cambiar a `empleado` al último dueño activo.
+- Las operaciones que pueden afectar la cantidad de dueños activos bloquean los registros dentro de una transacción para evitar que solicitudes concurrentes incumplan esta regla.
+
+### Respuestas de error
+
+| Código HTTP | Situación |
+|---|---|
+| `401 Unauthorized` | El usuario no está autenticado. |
+| `403 Forbidden` | El usuario no tiene el rol requerido o su cuenta está desactivada. |
+| `422 Unprocessable Entity` | Los datos no son válidos o se incumple una regla de negocio, como intentar desactivar la propia cuenta o modificar al último dueño activo. |
+
+## 7. Reglas de seguridad
 
 ### Autorización por roles
 
-El registro y la consulta de usuarios administrativos están restringidos al rol `dueno`.
+El registro, la consulta, la actualización y la gestión del estado de usuarios administrativos están restringidos al rol `dueno`.
 
 La autorización se comprueba mediante el middleware de la ruta y la autorización definida en las respectivas Requests.
 
@@ -344,9 +478,11 @@ Las contraseñas nuevas deben cumplir las siguientes condiciones:
 
 ### Estado de la cuenta
 
-Durante el registro, el dueño puede establecer si la cuenta se encuentra activa o inactiva.
+Durante el registro, el dueño puede establecer si la cuenta se encuentra activa o inactiva. Posteriormente, puede activar o desactivar la cuenta mediante la operación de cambio de estado.
 
-El estado se almacena mediante el atributo booleano `activo`.
+El estado se almacena mediante el atributo booleano `activo`. Los usuarios con cuentas desactivadas no pueden iniciar sesión ni acceder a rutas protegidas. Si una cuenta se desactiva mientras mantiene una sesión iniciada, `VerificarUsuarioActivo` cierra esa sesión cuando intenta acceder nuevamente.
+
+Un dueño no puede desactivar su propia cuenta y el sistema debe conservar al menos un dueño activo. Esta última condición también se protege frente a operaciones concurrentes.
 
 ### Protección de información sensible
 
@@ -362,7 +498,7 @@ La autorización se comprueba mediante el middleware de la ruta y la autorizaci�
 
 La respuesta utiliza `UsuarioAdministrativoResource` para evitar exponer información sensible, como contraseñas, intentos fallidos y fechas de bloqueo.
 
-## 7. Rutas API
+## 8. Rutas API
 
 Las rutas relacionadas con la administración de usuarios administrativos se encuentran en:
 
@@ -374,10 +510,12 @@ Actualmente se encuentran implementadas:
 |---|---|---|---|
 | POST | `/api/usuarios-administrativos` | `usuarios-administrativos.store` | Registrar usuario administrativo. |
 | GET | `/api/usuarios-administrativos` | `usuarios-administrativos.index` | Consultar usuarios administrativos. |
+| PATCH | `/api/usuarios-administrativos/{usuarioAdministrativo}` | `usuarios-administrativos.update` | Actualizar información de un usuario administrativo. |
+| PATCH | `/api/usuarios-administrativos/{usuarioAdministrativo}/estado` | `usuarios-administrativos.estado` | Activar o desactivar una cuenta administrativa. |
 
-Las rutas están protegidas mediante autenticación Sanctum y autorización por rol.
+Las rutas están protegidas mediante `auth:sanctum`, `usuario.activo` y autorización por rol `rol.administrativo:dueno`.
 
-## 8. Pruebas automatizadas
+## 9. Pruebas automatizadas
 
 ### Pruebas de registro de usuarios administrativos
 
@@ -423,12 +561,61 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la
 11. El nombre de usuario no puede superar los cien caracteres.
 12. La respuesta no expone información sensible de los usuarios.
 
+### Pruebas de actualización de usuarios administrativos
+
+Archivo: `tests/Feature/ActualizarUsuarioAdministrativoTest.php`
+
+**Escenarios comprobados:**
+
+1. Un dueño puede actualizar el nombre de usuario.
+2. Un dueño puede convertir un empleado en dueño.
+3. Un dueño puede cambiar el rol de otro dueño cuando existen más dueños activos.
+4. No se puede cambiar el rol del último dueño activo.
+5. Un dueño puede cambiar su propio rol si existe otro dueño activo.
+6. Un dueño puede actualizar la contraseña de otro usuario.
+7. Se conserva la contraseña actual cuando no se envía una nueva.
+8. Se rechazan contraseñas que no cumplen la política.
+9. No se permite utilizar un nombre de usuario que ya pertenece a otra cuenta.
+10. Un empleado no puede actualizar usuarios administrativos.
+11. Un usuario no autenticado no puede actualizar usuarios administrativos.
+
+### Pruebas de cambio de estado
+
+Archivo: `tests/Feature/CambiarEstadoUsuarioAdministrativoTest.php`
+
+**Escenarios comprobados:**
+
+1. Un dueño puede desactivar y activar cuentas de empleados.
+2. Un dueño puede desactivar a otro dueño cuando existen más dueños activos.
+3. Un dueño no puede desactivar su propia cuenta.
+4. Se rechazan valores inválidos para el estado.
+5. Un empleado no puede cambiar el estado de usuarios administrativos.
+6. Un usuario no autenticado no puede cambiar el estado de usuarios administrativos.
+
+### Pruebas de protección del último dueño activo
+
+Archivo: `tests/Unit/CambiarEstadoUsuarioAdministrativoTest.php`
+
+Comprueba que la acción rechace la desactivación del último dueño activo y que su cuenta conserve el estado original.
+
+### Pruebas de concurrencia
+
+Archivo: `tests/Feature/ConcurrenciaUsuariosAdministrativosTest.php`
+
+Comprueba mediante procesos independientes que dos operaciones simultáneas no puedan desactivar ni cambiar el rol de los dos últimos dueños activos, dejando el sistema sin un dueño activo.
+
+### Pruebas de verificación de cuenta activa
+
+Archivo: `tests/Feature/VerificarUsuarioActivoTest.php`
+
+Comprueba que una cuenta activa pueda acceder a rutas protegidas, que una cuenta inactiva sea rechazada y que una sesión previamente autenticada pierda el acceso cuando la cuenta es desactivada.
+
 ### Resultado de las pruebas
 
 Última ejecución completa:
 
 ```text
-Tests: 61 passed (289 assertions)
+Tests: 85 passed (365 assertions)
 ```
 
 Las pruebas de RF4 se ejecutan mediante:
@@ -443,18 +630,26 @@ Las pruebas de RF5 se ejecutan mediante:
 herd php artisan test --filter=ConsultarUsuariosAdministrativosTest
 ```
 
+Las pruebas de actualización de usuarios administrativos se ejecutan mediante:
+
+```bash
+herd php artisan test --filter=ActualizarUsuarioAdministrativoTest
+```
+
+Las pruebas de cambio de estado se ejecutan mediante:
+
+```bash
+herd php artisan test --filter=CambiarEstadoUsuarioAdministrativoTest
+```
+
 La suite completa del proyecto se ejecuta mediante:
 
 ```bash
 herd php artisan test
 ```
 
-## 9. Estado del módulo
+## 10. Estado del módulo
 
-El módulo de administración de usuarios administrativos cuenta con las funcionalidades de registro (RF4) y consulta (RF5), implementadas y validadas mediante pruebas automatizadas.
-
-Las siguientes funcionalidades se desarrollarán progresivamente:
-
-- Actualizar usuarios administrativos.
+El módulo de administración de usuarios administrativos cuenta con las funcionalidades de registro (RF4), consulta (RF5), actualización y gestión del estado (RF6), implementadas y validadas mediante pruebas automatizadas.
 
 Cada nuevo requerimiento deberá contar con su correspondiente implementación, pruebas automatizadas y documentación técnica antes de considerarse terminado.
