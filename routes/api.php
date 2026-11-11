@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TipoMembresiaController;
 use App\Http\Controllers\UsuarioAdministrativoController;
 use App\Http\Controllers\CambiarContrasenaController;
 use Illuminate\Http\Request;
@@ -16,10 +17,40 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         CambiarContrasenaController::class,
         'update',
     ])->name('usuario.contrasena.update');
+
+    // RF11: Registrar tipo de membresía
+    Route::post(
+        '/tipos-membresia',
+        [TipoMembresiaController::class, 'store']
+    )->name('tipos-membresia.store');
+
+    // RF12: Consultar tipos de membresía 
+    Route::get(
+        '/tipos-membresia',
+        [TipoMembresiaController::class, 'index']
+    )->name('tipos-membresia.index');
+
+    // Consultar un tipo de membresía específico.
+    Route::get(
+        '/tipos-membresia/{id}',
+        [TipoMembresiaController::class, 'show']
+    )->name('tipos-membresia.show');
+
+    // RF13: Actualizar y gestionar estado del tipo de membresía (Actualización).
+    Route::patch(
+        '/tipos-membresia/{id}',
+        [TipoMembresiaController::class, 'update']
+    )->name('tipos-membresia.update');
+
+    // RF13: Actualizar y gestionar estado del tipo de membresía (Cambio de estado).
+    Route::patch(
+        '/tipos-membresia/{id}/estado',
+        [TipoMembresiaController::class, 'cambiarEstado']
+    )->name('tipos-membresia.estado');
 });
 
 // Rutas para la administración de usuarios administrativos.
-Route::middleware(['auth:sanctum', 'usuario.activo','rol.administrativo:dueno'])->group(function () {
+Route::middleware(['auth:sanctum', 'usuario.activo', 'rol.administrativo:dueno'])->group(function () {
 
     // RF4: Registrar usuario administrativo.
     Route::post('/usuarios-administrativos', [UsuarioAdministrativoController::class, 'store'])
