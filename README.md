@@ -70,11 +70,14 @@ implementados y validados progresivamente.
     actualización del nombre de usuario, rol y contraseña opcional; activación
     y desactivación de cuentas, con protección del último dueño activo,
     restricción de auto-desactivación y control de acceso de cuentas inactivas.
+-   [x] **RF11 -- Registrar tipo de membresía:**
+    registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
 
 ### En desarrollo / pendientes
 
 -   [ ] Gestión de clientes.
--   [ ] Gestión de tipos de membresía.
+-   [ ] RF12 -- Consultar tipos de membresía.
+-   [ ] RF13 -- Actualizar y gestionar el estado de tipos de membresía.
 -   [ ] Gestión de membresías adquiridas.
 -   [ ] Registro y auditoría de modificaciones.
 -   [ ] Dashboard y reportes administrativos.
@@ -122,6 +125,7 @@ La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](doc
 | [Autenticación](docs/modulos/autenticacion.md) | Implementación, componentes, configuraciones, reglas de seguridad y pruebas del módulo de autenticación. |
 | [Administración de usuarios](docs/modulos/administracion-usuarios.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de administración de usuarios administrativos. |
 | [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
+| [Tipos de membresía](docs/modulos/tipos-membresia.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de gestión de tipos de membresía. |
 
 La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
 
@@ -203,7 +207,7 @@ herd php artisan test
 Último resultado registrado:
 
 ``` text
-Tests: 85 passed (365 assertions)
+Tests: 97 passed (439 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -228,6 +232,9 @@ Las pruebas actuales incluyen:
 -   Activación y desactivación de cuentas administrativas.
 -   Protección del último dueño activo y de operaciones concurrentes.
 -   Revocación del acceso de sesiones pertenecientes a cuentas desactivadas.
+-   Registro de tipos de membresía para dueños y empleados.
+-   Validación de datos, unicidad del nombre, longitud y precisión decimal de los tipos de membresía.
+-   Protección del registro de tipos de membresía frente a usuarios no autenticados e inactivos.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas
 pruebas antes de considerarse terminado.
@@ -236,8 +243,7 @@ pruebas antes de considerarse terminado.
 
 GymFlow se encuentra en una etapa de desarrollo progresivo.
 
-Actualmente se han completado la implementación y validación de los seis
-primeros requerimientos funcionales:
+Actualmente se han completado la implementación y validación de los siguientes requerimientos funcionales:
 
 -   **RF1:** Inicio de sesión.
 -   **RF2:** Cierre de sesión.
@@ -245,6 +251,7 @@ primeros requerimientos funcionales:
 -   **RF4:** Registrar usuario administrativo.
 -   **RF5:** Consultar usuarios administrativos.
 -   **RF6:** Actualizar y gestionar el estado de usuarios administrativos.
+-   **RF11:** Registrar tipo de membresía.
 
 También se encuentra implementada y probada la gestión de expiración de
 sesiones por inactividad.
