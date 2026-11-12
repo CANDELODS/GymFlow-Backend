@@ -46,7 +46,7 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 - [x] **Gestión de sesiones:** expiración automática después de 30 minutos de inactividad.
 - [x] **RF4 -- Registrar usuario administrativo:** registro de nuevas cuentas administrativas, asignación de roles, selección del estado inicial y validación de los datos mediante reglas de seguridad.
 - [x] **RF5 -- Consultar usuarios administrativos:** consulta de cuentas administrativas, búsqueda por nombre de usuario mediante coincidencias parciales y paginación de cinco registros por página. Acceso restringido al rol Dueño.
-- [x] **RF6 -- Actualizar y gestionar estado de usuarios administrativos:** actualización del nombre de usuario, rol y contraseña opcional; activación y desactivación de cuentas, con protección del último dueño activo, restricción de auto-desactivación y control de acceso de cuentas inactivas.
+- [x] **RF6 -- Actualizar y gestionar estado de usuarios administrativos:** actualización parcial o simultánea del nombre de usuario, rol, contraseña y estado de activación mediante el endpoint de actualización. También permite activar y desactivar cuentas mediante un endpoint específico. Incluye protección del último dueño activo, restricción de auto-desactivación y control de acceso de cuentas inactivas.
 - [x] **RF11 -- Registrar tipo de membresía:** registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
 - [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 - [x] **RF13 -- Actualizar y gestionar el estado de tipos de membresía:** actualización parcial o simultánea del nombre, duración, precio y estado; activación y desactivación mediante un endpoint específico. Acceso para dueños y empleados, con validación de datos y protección de cuentas inactivas.
@@ -213,7 +213,7 @@ herd php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 149 passed (653 assertions)
+Tests: 159 passed (693 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -234,9 +234,12 @@ Las pruebas actuales incluyen:
 - Paginación de resultados y conservación de filtros entre páginas.
 - Validación de parámetros de búsqueda y paginación.
 - Restricción de consultas y modificaciones administrativas según el rol.
-- Actualización de usuarios administrativos y cambio opcional de contraseña.
-- Activación y desactivación de cuentas administrativas.
-- Protección del último dueño activo y de operaciones concurrentes.
+- Actualización parcial y simultánea de los atributos de usuarios administrativos, incluyendo nombre de usuario, rol, contraseña y estado de activación.
+- Validación de contraseñas y confirmación durante la actualización, así como conservación de la contraseña actual cuando no se envía una nueva.
+- Activación y desactivación de cuentas administrativas mediante la actualización general y el endpoint específico de cambio de estado.
+- Validación del estado de activación y conservación del estado actual cuando no se envía en la solicitud.
+- Restricción de la auto-desactivación y protección del último dueño activo.
+- Protección de las operaciones administrativas frente a usuarios no autenticados, empleados y cuentas inactivas.
 - Revocación del acceso de sesiones pertenecientes a cuentas desactivadas.
 - Registro de tipos de membresía para dueños y empleados.
 - Validación de datos, unicidad del nombre, longitud y precisión decimal de los tipos de membresía.

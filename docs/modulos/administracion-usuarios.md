@@ -6,7 +6,7 @@ El módulo de administración de usuarios administrativos permite gestionar las 
 
 Actualmente, contempla el registro, la consulta, la actualización de información y la gestión del estado de las cuentas administrativas.
 
-El registro permite asignar uno de los roles disponibles y establecer el estado inicial de la cuenta. La consulta permite a los usuarios con rol Dueño visualizar las cuentas registradas, buscar por nombre de usuario y consultar los resultados mediante paginación. La actualización permite modificar el nombre de usuario, el rol y, opcionalmente, la contraseña. La gestión del estado permite activar o desactivar cuentas, aplicando restricciones para proteger el acceso administrativo al sistema.
+El registro permite asignar uno de los roles disponibles y establecer el estado inicial de la cuenta. La consulta permite a los usuarios con rol Dueño visualizar las cuentas registradas, buscar por nombre de usuario y consultar los resultados mediante paginación. La actualización permite modificar parcialmente o de manera simultánea el nombre de usuario, el rol, la contraseña y el estado de activación. La gestión del estado también dispone de un endpoint independiente para activar o desactivar cuentas, aplicando restricciones para proteger el acceso administrativo al sistema.
 
 El sistema contempla dos roles administrativos:
 
@@ -17,21 +17,11 @@ El registro, la consulta, la actualización y la gestión del estado de las cuen
 
 ### Funcionalidades implementadas
 
-- Registro de nuevos usuarios administrativos.
-- Asignación de roles durante el registro.
-- Selección del estado inicial de la cuenta (activo o inactivo).
-- Validación de unicidad del nombre de usuario.
-- Validación de la política de contraseñas.
-- Protección de las operaciones mediante autenticación y autorización.
-- Consulta de usuarios administrativos.
-- Búsqueda por coincidencias parciales del nombre de usuario.
-- Paginación de cinco registros por página.
-- Conservación de los filtros de búsqueda al cambiar de página.
-- Consulta del rol y estado de cada cuenta administrativa.
-- Exclusión de información sensible en las respuestas de la API.
-- Actualización del nombre de usuario y del rol de cuentas administrativas.
+- Actualización parcial del nombre de usuario y del rol de cuentas administrativas.
 - Actualización opcional de la contraseña, conservando la actual cuando no se proporciona una nueva.
-- Activación y desactivación de cuentas administrativas.
+- Actualización del estado de activación junto con los demás atributos mediante el endpoint general de actualización.
+- Activación y desactivación de cuentas administrativas mediante un endpoint específico.
+- Validación de los atributos enviados y del estado de activación.
 - Protección para impedir la desactivación de la propia cuenta.
 - Protección para garantizar que siempre exista al menos un dueño activo.
 - Bloqueo de acceso a rutas protegidas e invalidación de sesión cuando una cuenta es desactivada.
@@ -150,10 +140,11 @@ Comprueba que el usuario autenticado tenga el rol `dueno`.
 
 **Campos validados:**
 
-- `usuario`: obligatorio, de tipo texto, entre 5 y 100 caracteres y único, exceptuando el registro que se está actualizando.
+- `usuario`: opcional; cuando se envía, debe ser de tipo texto, tener entre 5 y 100 caracteres y ser único, exceptuando el registro que se está actualizando.
 - `password`: opcional; cuando se envía una nueva contraseña, debe ser de tipo texto, no superar los 255 caracteres y cumplir la política de seguridad.
 - `password_confirmation`: obligatoria cuando se envía `password` y debe coincidir con ella.
-- `rol`: obligatorio y limitado a `dueno` y `empleado`.
+- `rol`: opcional; cuando se envía, debe corresponder a uno de los valores permitidos: `dueno` o `empleado`.
+- `activo`: opcional y de tipo booleano. Permite activar o desactivar la cuenta durante la actualización.
 
 ### ActualizarUsuarioAdministrativo
 
@@ -166,10 +157,12 @@ Responsabilidades:
 1. Recibir el usuario que se actualizará y los datos previamente validados.
 2. Ejecutar la operación dentro de una transacción.
 3. Bloquear los registros de usuarios administrativos para proteger las reglas relacionadas con los dueños activos.
-4. Impedir que el sistema se quede sin dueños activos cuando se intenta cambiar el rol del último dueño activo a `empleado`.
-5. Actualizar el nombre de usuario y el rol.
-6. Actualizar la contraseña únicamente cuando se proporciona una nueva.
-7. Guardar y devolver el usuario actualizado.
+4. Determinar los nuevos valores de los atributos enviados, conservando los actuales cuando no se proporcionan.
+5. Impedir que un dueño desactive su propia cuenta.
+6. Impedir que el sistema se quede sin dueños activos cuando se intenta cambiar el rol o el estado del último dueño activo.
+7. Actualizar únicamente los atributos proporcionados en la solicitud.
+8. Actualizar la contraseña únicamente cuando se proporciona una nueva.
+9. Guardar y devolver el usuario actualizado.
 
 El hashing de la nueva contraseña se realiza mediante el cast `hashed` del modelo `UsuarioAdministrativo`.
 
@@ -397,7 +390,7 @@ La acción utiliza `withQueryString()` para conservar los parámetros de consult
 
 ## 6. Flujo de actualización y gestión del estado
 
-La actualización de información y el cambio de estado se realizan mediante solicitudes HTTP `PATCH` independientes.
+La actualización de información y la gestión del estado pueden realizarse mediante el endpoint general de actualización. Adicionalmente, se conserva un endpoint independiente para activar o desactivar cuentas administrativas.
 
 ### Actualizar información
 
@@ -405,7 +398,11 @@ La actualización de información y el cambio de estado se realizan mediante sol
 
 **Nombre de ruta:** `usuarios-administrativos.update`
 
-Permite modificar el nombre de usuario y el rol. También permite establecer una nueva contraseña enviando `password` y `password_confirmation`; si no se envía una contraseña nueva, se conserva la actual.
+Permite modificar parcialmente el nombre de usuario, el rol, la contraseña y el estado de activación. Los atributos son opcionales, por lo que solo se actualizan aquellos que se envían en la solicitud.
+
+Para cambiar la contraseña se deben enviar `password` y `password_confirmation`. Si no se proporciona una contraseña nueva, se conserva la actual.
+
+El campo `activo` permite activar o desactivar la cuenta durante esta misma operación.
 
 **Proceso:**
 
@@ -414,7 +411,7 @@ Permite modificar el nombre de usuario y el rol. También permite establecer una
 3. El middleware de rol y `ActualizarUsuarioAdministrativoRequest` restringen la operación al rol `dueno`.
 4. La Request valida los datos recibidos.
 5. `UsuarioAdministrativoController` ejecuta `ActualizarUsuarioAdministrativo`.
-6. La acción aplica las reglas de protección del último dueño activo y guarda los cambios dentro de una transacción.
+6. La acción aplica las reglas de protección del último dueño activo y de auto-desactivación, y guarda los cambios dentro de una transacción.
 7. El backend devuelve HTTP `200 OK` con el usuario actualizado mediante `UsuarioAdministrativoResource`.
 
 ### Cambiar estado de una cuenta
@@ -424,6 +421,8 @@ Permite modificar el nombre de usuario y el rol. También permite establecer una
 **Nombre de ruta:** `usuarios-administrativos.estado`
 
 Recibe el campo booleano `activo`: `true` para activar la cuenta y `false` para desactivarla.
+
+Este endpoint se conserva como alternativa independiente para modificar exclusivamente el estado de activación, sin necesidad de utilizar la actualización general.
 
 **Proceso:**
 
@@ -478,11 +477,11 @@ Las contraseñas nuevas deben cumplir las siguientes condiciones:
 
 ### Estado de la cuenta
 
-Durante el registro, el dueño puede establecer si la cuenta se encuentra activa o inactiva. Posteriormente, puede activar o desactivar la cuenta mediante la operación de cambio de estado.
+Durante el registro, el dueño puede establecer si la cuenta se encuentra activa o inactiva. Posteriormente, puede modificar el estado mediante el endpoint general de actualización o mediante el endpoint específico de cambio de estado.
 
 El estado se almacena mediante el atributo booleano `activo`. Los usuarios con cuentas desactivadas no pueden iniciar sesión ni acceder a rutas protegidas. Si una cuenta se desactiva mientras mantiene una sesión iniciada, `VerificarUsuarioActivo` cierra esa sesión cuando intenta acceder nuevamente.
 
-Un dueño no puede desactivar su propia cuenta y el sistema debe conservar al menos un dueño activo. Esta última condición también se protege frente a operaciones concurrentes.
+Un dueño no puede desactivar su propia cuenta y el sistema debe conservar al menos un dueño activo. Estas condiciones se aplican tanto en la actualización general como en el cambio de estado, y también se protegen frente a operaciones concurrentes.
 
 ### Protección de información sensible
 
@@ -578,6 +577,16 @@ Archivo: `tests/Feature/UsuarioAdministrativo/ActualizarUsuarioAdministrativoTes
 9. No se permite utilizar un nombre de usuario que ya pertenece a otra cuenta.
 10. Un empleado no puede actualizar usuarios administrativos.
 11. Un usuario no autenticado no puede actualizar usuarios administrativos.
+12. Un dueño puede desactivar a otro usuario administrativo.
+13. Un dueño puede activar a otro usuario administrativo.
+14. Un dueño puede actualizar el nombre de usuario y el estado simultáneamente.
+15. Un dueño puede actualizar el rol y el estado simultáneamente.
+16. No se puede desactivar al último dueño activo mediante la actualización general.
+17. Un dueño no puede desactivar su propia cuenta aunque existan otros dueños activos.
+18. No se permiten valores no booleanos para el estado de activación.
+19. No se permite enviar el estado de activación vacío.
+20. Se conserva el estado actual cuando no se envía el atributo `activo`.
+21. Un dueño puede actualizar todos los atributos simultáneamente, incluyendo nombre de usuario, rol, contraseña y estado de activación.
 
 ### Pruebas de cambio de estado
 
@@ -615,7 +624,7 @@ Comprueba que una cuenta activa pueda acceder a rutas protegidas, que una cuenta
 Última ejecución completa:
 
 ```text
-Tests: 72 passed (326 assertions)
+Tests: 56 passed (241 assertions)
 ```
 
 Las pruebas de RF4 se ejecutan mediante:
@@ -651,5 +660,7 @@ herd php artisan test
 ## 10. Estado del módulo
 
 El módulo de administración de usuarios administrativos cuenta con las funcionalidades de registro (RF4), consulta (RF5), actualización y gestión del estado (RF6), implementadas y validadas mediante pruebas automatizadas.
+
+La actualización permite modificar parcialmente o de manera simultánea los atributos de una cuenta administrativa, incluyendo su estado de activación. También se conserva el endpoint específico para gestionar dicho estado.
 
 Cada nuevo requerimiento deberá contar con su correspondiente implementación, pruebas automatizadas y documentación técnica antes de considerarse terminado.
