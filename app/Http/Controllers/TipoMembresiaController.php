@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\TipoMembresia\ConsultarTiposMembresia;
 use App\Actions\TipoMembresia\RegistrarTipoMembresia;
+use App\Http\Requests\TipoMembresia\ConsultarTiposMembresiaRequest;
 use App\Http\Requests\TipoMembresia\RegistrarTipoMembresiaRequest;
 use App\Http\Resources\TipoMembresiaResource;
 use Illuminate\Http\Request;
@@ -12,9 +14,15 @@ class TipoMembresiaController extends Controller
     /**
      * Muestra todos los tipos de membresía.
      */
-    public function index()
-    {
-        //
+    public function index(
+        ConsultarTiposMembresiaRequest $request,
+        ConsultarTiposMembresia $consultarTiposMembresia
+    ) {
+        // Ejecutamos la acción con los filtros previamente validados.
+        $tiposMembresia = $consultarTiposMembresia->ejecutar($request->validated());
+
+        // Transformamos los tipos de mebresía y devolvemos la información de paginación.
+        return TipoMembresiaResource::collection($tiposMembresia);
     }
 
     /**
