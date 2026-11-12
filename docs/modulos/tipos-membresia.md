@@ -8,7 +8,9 @@ Actualmente, contempla el registro de nuevos tipos de membresía, definiendo su 
 
 También permite consultar los tipos registrados, buscar por coincidencias parciales del nombre y filtrar los resultados según su estado. La consulta se encuentra disponible para usuarios administrativos con rol Dueño o Empleado y presenta los resultados en páginas de cinco registros, ordenados alfabéticamente por nombre.
 
-El sistema permite que los usuarios administrativos con rol Dueño o Empleado realicen esta operación.
+Además, permite actualizar de forma parcial o simultánea el nombre, la duración, el precio y el estado de un tipo de membresía. El estado también puede modificarse mediante una operación específica de activación o desactivación.
+
+Las operaciones del módulo están disponibles para usuarios administrativos con rol Dueño o Empleado.
 
 ### Funcionalidades implementadas
 
@@ -24,6 +26,12 @@ El sistema permite que los usuarios administrativos con rol Dueño o Empleado re
 - Ordenamiento alfabético y paginación de cinco registros por página.
 - Conservación de los filtros al navegar entre páginas.
 - Validación automatizada de los escenarios de consulta.
+- Actualización parcial de los atributos de un tipo de membresía.
+- Actualización simultánea de nombre, duración, precio y estado.
+- Activación y desactivación de tipos de membresía mediante una operación específica.
+- Protección de las operaciones de actualización frente a usuarios no autenticados e inactivos.
+- Validación del estado y conservación de los atributos no modificados.
+- Validación automatizada de los escenarios de actualización y cambio de estado.
 
 ## 2. Tecnologías utilizadas
 
@@ -125,7 +133,7 @@ Archivo: `app/Http/Controllers/TipoMembresiaController.php`
 
 Coordina las solicitudes HTTP relacionadas con la gestión de tipos de membresía.
 
-Actualmente, implementa los métodos `store()` para registrar nuevos tipos de membresía e `index()` para consultar los tipos registrados.
+Implementa los métodos `store()` para registrar nuevos tipos de membresía, `index()` para consultar los tipos registrados, `update()` para actualizar sus atributos y `cambiarEstado()` para activar o desactivar un tipo de membresía.
 
 **Responsabilidades de `store()`:**
 
@@ -143,7 +151,69 @@ Actualmente, implementa los métodos `store()` para registrar nuevos tipos de me
 4. Transformar los resultados mediante `TipoMembresiaResource`.
 5. Devolver una colección JSON con los datos y la información de paginación.
 
-Los métodos correspondientes a la actualización y cambio de estado se implementarán en sus respectivos requerimientos funcionales.
+**Responsabilidades de `update()`:**
+
+1. Recibir la solicitud mediante `ActualizarTipoMembresiaRequest`.
+2. Obtener los datos previamente validados, que pueden incluir uno o varios de los atributos `nombre`, `duracion_dias`, `precio` y `activo`.
+3. Ejecutar la acción `ActualizarTipoMembresia`.
+4. Transformar el resultado mediante `TipoMembresiaResource`.
+5. Devolver HTTP `200 OK` con un mensaje de confirmación y los datos actualizados.
+
+**Responsabilidades de `cambiarEstado()`:**
+
+1. Recibir la solicitud mediante `CambiarEstadoTipoMembresiaRequest`.
+2. Obtener el valor booleano validado de `activo`.
+3. Ejecutar la acción `CambiarEstadoTipoMembresia`.
+4. Transformar el resultado mediante `TipoMembresiaResource`.
+5. Devolver HTTP `200 OK` con un mensaje de confirmación y el estado actualizado.
+
+### ActualizarTipoMembresiaRequest
+
+Archivo: `app/Http/Requests/TipoMembresia/ActualizarTipoMembresiaRequest.php`
+
+Valida y autoriza las solicitudes de actualización de tipos de membresía.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Campos validados:**
+
+- `nombre`: opcional; cuando se envía, es obligatorio, de tipo texto, con un máximo de 100 caracteres y único, permitiendo conservar el nombre del propio registro.
+- `duracion_dias`: opcional; cuando se envía, es obligatoria, de tipo entero y mayor que cero.
+- `precio`: opcional; cuando se envía, es obligatorio, de tipo numérico, mayor que cero y con un máximo de dos decimales.
+- `activo`: opcional; cuando se envía, es obligatorio y debe ser un valor booleano.
+
+El uso de `sometimes` permite realizar actualizaciones parciales. Los atributos omitidos conservan sus valores actuales. También es posible actualizar varios atributos, incluido el estado, en una sola solicitud.
+
+### ActualizarTipoMembresia
+
+Archivo: `app/Actions/TipoMembresia/ActualizarTipoMembresia.php`
+
+Centraliza la actualización de los atributos de un tipo de membresía.
+
+Responsabilidades:
+
+1. Recibir el modelo y los datos previamente validados.
+2. Actualizar únicamente los atributos recibidos mediante Eloquent.
+3. Recuperar los valores actualizados desde la base de datos mediante `refresh()`.
+4. Devolver la instancia actualizada del tipo de membresía.
+
+### CambiarEstadoTipoMembresiaRequest
+
+Archivo: `app/Http/Requests/TipoMembresia/CambiarEstadoTipoMembresiaRequest.php`
+
+Valida y autoriza las solicitudes específicas de activación o desactivación.
+
+Permite la operación a usuarios autenticados con rol `dueno` o `empleado`. El campo `activo` es obligatorio y debe contener un valor booleano.
+
+### CambiarEstadoTipoMembresia
+
+Archivo: `app/Actions/TipoMembresia/CambiarEstadoTipoMembresia.php`
+
+Centraliza la activación y desactivación de tipos de membresía.
+
+La operación se ejecuta dentro de una transacción y vuelve a consultar el registro utilizando `lockForUpdate()` antes de modificar su estado. Esto permite serializar los cambios concurrentes sobre el mismo tipo de membresía.
 
 ### TipoMembresiaResource
 
@@ -159,7 +229,7 @@ Atributos expuestos:
 - `precio`
 - `activo`
 
-## 4. Flujo de registro
+## 4. Flujos de operación
 
 El registro de tipos de membresía se realiza mediante una solicitud HTTP `POST`.
 
@@ -261,6 +331,51 @@ El proceso sigue este orden:
 9. `TipoMembresiaResource` transforma los resultados.
 10. El backend devuelve HTTP `200 OK` con la colección y los metadatos de paginación.
 
+### Flujo de actualización
+
+La actualización de los atributos se realiza mediante una solicitud HTTP `PATCH`.
+
+**Endpoint:**
+
+`PATCH /api/tipos-membresia/{tipoMembresia}`
+
+**Nombre de ruta:** `tipos-membresia.update`.
+
+La operación está protegida por `auth:sanctum` y `usuario.activo`. `ActualizarTipoMembresiaRequest` autoriza a usuarios con rol `dueno` o `empleado` y valida los atributos enviados.
+
+Se pueden actualizar uno o varios atributos en una misma solicitud. Por ejemplo:
+
+```json
+{
+    "precio": 60000,
+    "activo": false
+}
+```
+
+Los atributos que no se envían conservan sus valores actuales. La respuesta exitosa utiliza HTTP `200 OK` y devuelve el recurso actualizado.
+
+### Flujo de cambio de estado
+
+La activación o desactivación específica se realiza mediante una solicitud HTTP `PATCH`.
+
+**Endpoint:**
+
+`PATCH /api/tipos-membresia/{tipoMembresia}/estado`
+
+**Nombre de ruta:** `tipos-membresia.estado`.
+
+La operación está protegida por `auth:sanctum` y `usuario.activo`. `CambiarEstadoTipoMembresiaRequest` autoriza a usuarios con rol `dueno` o `empleado` y exige el campo booleano `activo`.
+
+Ejemplo de solicitud para desactivar un tipo:
+
+```json
+{
+    "activo": false
+}
+```
+
+La operación se ejecuta mediante una transacción y bloquea el registro durante el cambio de estado. La respuesta exitosa utiliza HTTP `200 OK` y devuelve el recurso actualizado.
+
 ## 5. Reglas de validación y seguridad
 
 ### Autorización por roles
@@ -268,6 +383,8 @@ El proceso sigue este orden:
 El registro de tipos de membresía está permitido a los usuarios con rol `dueno` y `empleado`.
 
 La autorización se comprueba mediante `RegistrarTipoMembresiaRequest`.
+
+La actualización y el cambio de estado también están autorizados para usuarios con rol `dueno` o `empleado`, mediante `ActualizarTipoMembresiaRequest` y `CambiarEstadoTipoMembresiaRequest`, respectivamente.
 
 ### Unicidad del nombre
 
@@ -284,6 +401,16 @@ La duración debe ser un número entero mayor que cero, expresado en días.
 ### Precio
 
 El precio debe ser un valor numérico mayor que cero y admitir como máximo dos posiciones decimales.
+
+### Actualización de atributos
+
+La actualización permite modificar de forma parcial `nombre`, `duracion_dias`, `precio` y `activo`. Cada campo es opcional, pero debe cumplir sus reglas cuando se incluye en la solicitud.
+
+El campo `activo` admite valores booleanos válidos. Si se omite, el estado actual se conserva. Los atributos adicionales que no formen parte de los datos validados no se utilizan en la actualización.
+
+### Cambio de estado
+
+La operación específica de cambio de estado modifica únicamente el atributo `activo`. Se ejecuta dentro de una transacción y utiliza `lockForUpdate()` para bloquear el registro mientras se realiza la modificación.
 
 ### Estado inicial
 
@@ -321,6 +448,8 @@ Actualmente se encuentran implementadas:
 |---|---|---|---|
 | POST | `/api/tipos-membresia` | `tipos-membresia.store` | Registrar tipo de membresía. |
 | GET | `/api/tipos-membresia` | `tipos-membresia.index` | Consultar tipos de membresía. |
+| PATCH | `/api/tipos-membresia/{tipoMembresia}` | `tipos-membresia.update` | Actualizar uno o varios atributos del tipo de membresía. |
+| PATCH | `/api/tipos-membresia/{tipoMembresia}/estado` | `tipos-membresia.estado` | Activar o desactivar un tipo de membresía. |
 
 Las rutas están protegidas mediante `auth:sanctum` y `usuario.activo`. La autorización por rol se realiza mediante los respectivos Form Requests y permite el acceso a usuarios con rol `dueno` o `empleado`.
 
@@ -375,12 +504,47 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la
 17. El parámetro `activo` debe contener un valor booleano válido.
 18. Sin tipos de membresía registrados, se devuelve una colección vacía.
 
+### Pruebas de actualización de tipos de membresía
+
+Archivo: `tests/Feature/TipoMembresia/ActualizarTipoMembresiaTest.php`
+
+Se implementaron 21 pruebas para verificar la actualización de tipos de membresía.
+
+**Escenarios comprobados:**
+
+- Actualización por parte de dueños y empleados.
+- Rechazo de solicitudes de usuarios no autenticados e inactivos.
+- Actualización parcial y aceptación de una solicitud sin cambios.
+- Validación del nombre, duración, precio y estado.
+- Protección frente a nombres duplicados y tipos inexistentes.
+- Actualización exclusiva del estado.
+- Actualización simultánea del precio y el estado.
+- Actualización simultánea de nombre, duración, precio y estado.
+- Conservación del estado cuando no se envía el campo `activo`.
+- Rechazo de estados vacíos o no booleanos.
+
+### Pruebas de cambio de estado de tipos de membresía
+
+Archivo: `tests/Feature/TipoMembresia/CambiarEstadoTipoMembresiaTest.php`
+
+Se implementaron 13 pruebas para verificar la activación y desactivación de tipos de membresía.
+
+**Escenarios comprobados:**
+
+- Activación y desactivación por parte de dueños y empleados.
+- Repetición de solicitudes de activación o desactivación cuando el tipo ya tiene ese estado.
+- Rechazo de solicitudes de usuarios no autenticados e inactivos.
+- Validación del campo `activo` obligatorio y booleano.
+- Rechazo de solicitudes para tipos de membresía inexistentes.
+- Conservación de los demás atributos al cambiar el estado.
+- Ignorar atributos adicionales enviados a este endpoint.
+
 ### Resultado de las pruebas
 
 Última ejecución completa:
 
 ```text
-Tests: 115 passed (537 assertions)
+Tests: 149 passed (653 assertions)
 ```
 
 Las pruebas de RF11 se ejecutan mediante:
@@ -395,6 +559,13 @@ Las pruebas de RF12 se ejecutan mediante:
 herd php artisan test --filter=ConsultarTiposMembresiaTest
 ```
 
+Las pruebas de RF13 se ejecutan mediante:
+
+```bash
+herd php artisan test --filter=ActualizarTipoMembresiaTest
+herd php artisan test --filter=CambiarEstadoTipoMembresiaTest
+```
+
 La suite completa del proyecto se ejecuta mediante:
 
 ```bash
@@ -403,6 +574,6 @@ herd php artisan test
 
 ## 8. Estado del módulo
 
-El módulo de gestión de tipos de membresía cuenta con el registro (RF11) y la consulta (RF12), implementados y validados mediante pruebas automatizadas.
+El módulo de gestión de tipos de membresía cuenta con el registro (RF11), la consulta (RF12) y la actualización y gestión del estado (RF13), implementados y validados mediante pruebas automatizadas.
 
-La actualización y gestión del estado (RF13) se desarrollarán posteriormente, siguiendo el mismo proceso de análisis, implementación, pruebas y documentación técnica.
+Las operaciones de actualización permiten modificar de forma parcial o simultánea los atributos del tipo de membresía. También se dispone de una operación específica para activar o desactivar un registro.
