@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\UsuarioAdministrativo\CambiarContrasenaUsuarioAdministrativo;
-use App\Http\Requests\CambiarContrasenaRequest;
+use App\Http\Requests\Auth\CambiarContrasenaRequest;
 use App\Models\UsuarioAdministrativo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;

@@ -1,8 +1,6 @@
 <?php
 
-namespace Tests\Feature;
-
-namespace Tests\Feature;
+namespace Tests\Feature\Auth;
 
 use App\Models\UsuarioAdministrativo;
 use Illuminate\Foundation\Testing\RefreshDatabase;

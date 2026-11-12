@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\Auth;
 //La clase LoginRequest hereda de FormRequest, por lo que podemos definir reglas de validación y mensajes personalizados para la solicitud de inicio de sesión
 use Laravel\Fortify\Http\Requests\LoginRequest;
 use Laravel\Fortify\Fortify;

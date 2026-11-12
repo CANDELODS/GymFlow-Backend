@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Actions\Auth\AutenticarUsuarioAdministrativo;
-use App\Http\Requests\UsuarioAdministrativoLoginRequest;
+use App\Http\Requests\Auth\UsuarioAdministrativoLoginRequest;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;

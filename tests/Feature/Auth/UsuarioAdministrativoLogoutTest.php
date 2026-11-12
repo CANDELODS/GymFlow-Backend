@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Feature\Auth;
 
 use App\Models\UsuarioAdministrativo;
 // Permite restablecer la BD entre pruebas, evitando que los registros creados en una prueba interfieran con las demás.
