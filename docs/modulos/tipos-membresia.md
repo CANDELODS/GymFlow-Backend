@@ -6,6 +6,8 @@ El módulo de gestión de tipos de membresía permite administrar las modalidade
 
 Actualmente, contempla el registro de nuevos tipos de membresía, definiendo su nombre, duración en días y precio. Cada tipo registrado queda habilitado inicialmente para que pueda utilizarse en el registro de membresías adquiridas por los clientes.
 
+También permite consultar los tipos registrados, buscar por coincidencias parciales del nombre y filtrar los resultados según su estado. La consulta se encuentra disponible para usuarios administrativos con rol Dueño o Empleado y presenta los resultados en páginas de cinco registros, ordenados alfabéticamente por nombre.
+
 El sistema permite que los usuarios administrativos con rol Dueño o Empleado realicen esta operación.
 
 ### Funcionalidades implementadas
@@ -18,6 +20,10 @@ El sistema permite que los usuarios administrativos con rol Dueño o Empleado re
 - Protección de la operación mediante autenticación y verificación del estado de la cuenta.
 - Respuestas controladas mediante un Resource.
 - Validación automatizada de los escenarios de registro.
+- Consulta de tipos de membresía con búsqueda por nombre y filtros por estado.
+- Ordenamiento alfabético y paginación de cinco registros por página.
+- Conservación de los filtros al navegar entre páginas.
+- Validación automatizada de los escenarios de consulta.
 
 ## 2. Tecnologías utilizadas
 
@@ -80,15 +86,48 @@ Responsabilidades:
 
 La recuperación mediante `refresh()` permite obtener también los valores asignados automáticamente por la base de datos, como el estado inicial habilitado.
 
+### ConsultarTiposMembresiaRequest
+
+Archivo: `app/Http/Requests/TipoMembresia/ConsultarTiposMembresiaRequest.php`
+
+Valida y autoriza las solicitudes de consulta de tipos de membresía.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Parámetros validados:**
+
+- `nombre`: opcional, de tipo texto y con un máximo de 100 caracteres. Se utiliza para buscar coincidencias parciales.
+- `activo`: opcional, de tipo booleano. Permite filtrar los tipos habilitados (`1`) o deshabilitados (`0`).
+- `page`: opcional, de tipo entero y con un valor mínimo de 1.
+
+También proporciona mensajes de validación personalizados en español.
+
+### ConsultarTiposMembresia
+
+Archivo: `app/Actions/TipoMembresia/ConsultarTiposMembresia.php`
+
+Centraliza la consulta de tipos de membresía.
+
+Responsabilidades:
+
+1. Construir la consulta sobre el modelo `TipoMembresia`.
+2. Aplicar el filtro por nombre cuando se proporciona, utilizando coincidencias parciales.
+3. Aplicar el filtro por estado cuando se proporciona, permitiendo consultar tanto registros activos como inactivos.
+4. Ordenar los resultados alfabéticamente por nombre.
+5. Paginar los resultados en grupos de cinco registros.
+6. Conservar los parámetros de búsqueda y filtrado en los enlaces de paginación.
+
 ### TipoMembresiaController
 
 Archivo: `app/Http/Controllers/TipoMembresiaController.php`
 
 Coordina las solicitudes HTTP relacionadas con la gestión de tipos de membresía.
 
-Actualmente, implementa el método `store()` para registrar nuevos tipos de membresía.
+Actualmente, implementa los métodos `store()` para registrar nuevos tipos de membresía e `index()` para consultar los tipos registrados.
 
-Responsabilidades:
+**Responsabilidades de `store()`:**
 
 1. Recibir la solicitud mediante `RegistrarTipoMembresiaRequest`.
 2. Obtener los datos previamente validados.
@@ -96,7 +135,15 @@ Responsabilidades:
 4. Transformar el resultado mediante `TipoMembresiaResource`.
 5. Devolver una respuesta JSON con HTTP `201 Created`.
 
-El controlador contempla los métodos correspondientes a las operaciones de consulta, actualización y cambio de estado, que se implementarán en sus respectivos requerimientos funcionales.
+**Responsabilidades de `index()`:**
+
+1. Recibir la solicitud mediante `ConsultarTiposMembresiaRequest`.
+2. Obtener los filtros previamente validados.
+3. Ejecutar la acción `ConsultarTiposMembresia`.
+4. Transformar los resultados mediante `TipoMembresiaResource`.
+5. Devolver una colección JSON con los datos y la información de paginación.
+
+Los métodos correspondientes a la actualización y cambio de estado se implementarán en sus respectivos requerimientos funcionales.
 
 ### TipoMembresiaResource
 
@@ -174,6 +221,46 @@ Los valores son ilustrativos.
 | `403 Forbidden` | La cuenta del usuario está desactivada o no tiene autorización para realizar la operación. |
 | `422 Unprocessable Entity` | Los datos enviados incumplen las reglas de validación. |
 
+### Flujo de consulta
+
+La consulta de tipos de membresía se realiza mediante una solicitud HTTP `GET`.
+
+**Endpoint:**
+
+`GET /api/tipos-membresia`
+
+**Parámetros opcionales:**
+
+| Parámetro | Descripción | Valores |
+|---|---|---|
+| `nombre` | Busca tipos cuyo nombre contenga el texto indicado. | Texto de hasta 100 caracteres. |
+| `activo` | Filtra por estado. | `1` para activos, `0` para inactivos. |
+| `page` | Indica la página que se desea consultar. | Entero mayor o igual a 1. |
+
+Los parámetros pueden combinarse. Por ejemplo:
+
+- `GET /api/tipos-membresia?nombre=mens`
+- `GET /api/tipos-membresia?activo=1`
+- `GET /api/tipos-membresia?nombre=mens&activo=0`
+- `GET /api/tipos-membresia?nombre=mens&activo=0&page=2`
+
+**Nombre de ruta:** `tipos-membresia.index`.
+
+La respuesta utiliza la estructura de colección de Laravel Resource, con los resultados dentro de `data` y la información de paginación en `links` y `meta`. Si no existen registros o no se encuentran coincidencias, `data` contiene una colección vacía.
+
+El proceso sigue este orden:
+
+1. El usuario administrativo solicita la consulta de tipos de membresía.
+2. El frontend envía una solicitud `GET /api/tipos-membresia`, incluyendo los filtros opcionales.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario continúe activa.
+5. `ConsultarTiposMembresiaRequest` autoriza la operación y valida los parámetros recibidos.
+6. `TipoMembresiaController` obtiene los filtros validados.
+7. El controlador ejecuta la acción `ConsultarTiposMembresia`.
+8. La acción aplica los filtros, ordena los resultados por nombre y pagina los registros de cinco en cinco.
+9. `TipoMembresiaResource` transforma los resultados.
+10. El backend devuelve HTTP `200 OK` con la colección y los metadatos de paginación.
+
 ## 5. Reglas de validación y seguridad
 
 ### Autorización por roles
@@ -204,6 +291,18 @@ Los tipos de membresía se registran inicialmente habilitados.
 
 El valor predeterminado se establece en la base de datos mediante el atributo booleano `activo`.
 
+### Búsqueda y filtros
+
+La búsqueda por `nombre` permite coincidencias parciales y admite hasta 100 caracteres.
+
+El parámetro `activo` acepta valores booleanos válidos. En las consultas mediante URL se utilizan `1` para los tipos activos y `0` para los inactivos. Cuando el parámetro no se proporciona, se incluyen ambos estados.
+
+### Paginación
+
+Los resultados se ordenan alfabéticamente por nombre y se presentan en páginas de cinco registros. El parámetro `page` debe ser un entero mayor o igual a 1.
+
+Los filtros aplicados se conservan en los enlaces de paginación.
+
 ### Protección de rutas
 
 Las operaciones del módulo están protegidas mediante autenticación con Sanctum y verificación del estado de la cuenta administrativa.
@@ -221,8 +320,9 @@ Actualmente se encuentran implementadas:
 | Método | Endpoint | Nombre | Operación |
 |---|---|---|---|
 | POST | `/api/tipos-membresia` | `tipos-membresia.store` | Registrar tipo de membresía. |
+| GET | `/api/tipos-membresia` | `tipos-membresia.index` | Consultar tipos de membresía. |
 
-Las rutas están protegidas mediante `auth:sanctum` y `usuario.activo`.
+Las rutas están protegidas mediante `auth:sanctum` y `usuario.activo`. La autorización por rol se realiza mediante los respectivos Form Requests y permite el acceso a usuarios con rol `dueno` o `empleado`.
 
 ## 7. Pruebas automatizadas
 
@@ -248,18 +348,51 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento del r
 12. Se permite registrar un tipo de membresía con un nombre de cien caracteres.
 13. Se permite registrar un tipo de membresía con dos decimales en el precio.
 
+### Pruebas de consulta de tipos de membresía
+
+Archivo: `tests/Feature/TipoMembresia/ConsultarTiposMembresiaTest.php`
+
+Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la consulta.
+
+**Escenarios comprobados:**
+
+1. Un dueño puede consultar los tipos de membresía.
+2. Un empleado puede consultar los tipos de membresía.
+3. Un usuario no autenticado no puede consultar tipos de membresía.
+4. Un usuario inactivo no puede consultar tipos de membresía.
+5. La búsqueda permite encontrar coincidencias parciales por nombre.
+6. Una búsqueda sin coincidencias devuelve una colección vacía.
+7. Se pueden consultar únicamente los tipos activos.
+8. Se pueden consultar únicamente los tipos inactivos.
+9. Se pueden combinar la búsqueda por nombre y el filtro por estado.
+10. Los resultados se paginan de cinco en cinco.
+11. Los filtros se conservan al cambiar de página.
+12. No se permiten números de página menores que uno.
+13. No se permiten valores no numéricos para el número de página.
+14. El parámetro `nombre` debe ser de tipo texto.
+15. No se permiten búsquedas con nombres de más de 100 caracteres.
+16. Se permiten búsquedas con nombres de exactamente 100 caracteres.
+17. El parámetro `activo` debe contener un valor booleano válido.
+18. Sin tipos de membresía registrados, se devuelve una colección vacía.
+
 ### Resultado de las pruebas
 
 Última ejecución completa:
 
 ```text
-Tests: 97 passed (439 assertions)
+Tests: 115 passed (537 assertions)
 ```
 
 Las pruebas de RF11 se ejecutan mediante:
 
 ```bash
 herd php artisan test --filter=RegistrarTipoMembresiaTest
+```
+
+Las pruebas de RF12 se ejecutan mediante:
+
+```bash
+herd php artisan test --filter=ConsultarTiposMembresiaTest
 ```
 
 La suite completa del proyecto se ejecuta mediante:
@@ -270,6 +403,6 @@ herd php artisan test
 
 ## 8. Estado del módulo
 
-El módulo de gestión de tipos de membresía cuenta con el registro (RF11), implementado y validado mediante pruebas automatizadas.
+El módulo de gestión de tipos de membresía cuenta con el registro (RF11) y la consulta (RF12), implementados y validados mediante pruebas automatizadas.
 
-La consulta (RF12), la actualización y gestión del estado (RF13) se desarrollarán posteriormente, siguiendo el mismo proceso de análisis, implementación, pruebas y documentación técnica.
+La actualización y gestión del estado (RF13) se desarrollarán posteriormente, siguiendo el mismo proceso de análisis, implementación, pruebas y documentación técnica.

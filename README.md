@@ -72,11 +72,11 @@ implementados y validados progresivamente.
     restricción de auto-desactivación y control de acceso de cuentas inactivas.
 -   [x] **RF11 -- Registrar tipo de membresía:**
     registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
+-   [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 
 ### En desarrollo / pendientes
 
 -   [ ] Gestión de clientes.
--   [ ] RF12 -- Consultar tipos de membresía.
 -   [ ] RF13 -- Actualizar y gestionar el estado de tipos de membresía.
 -   [ ] Gestión de membresías adquiridas.
 -   [ ] Registro y auditoría de modificaciones.
@@ -207,7 +207,7 @@ herd php artisan test
 Último resultado registrado:
 
 ``` text
-Tests: 97 passed (439 assertions)
+Tests: 115 passed (537 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -235,6 +235,11 @@ Las pruebas actuales incluyen:
 -   Registro de tipos de membresía para dueños y empleados.
 -   Validación de datos, unicidad del nombre, longitud y precisión decimal de los tipos de membresía.
 -   Protección del registro de tipos de membresía frente a usuarios no autenticados e inactivos.
+-   Consulta de tipos de membresía por parte de dueños y empleados.
+-   Búsqueda por coincidencias parciales del nombre y filtros por estado activo o inactivo.
+-   Paginación de cinco registros por página y conservación de filtros entre páginas.
+-   Validación de parámetros de búsqueda, estado y paginación.
+-   Respuestas vacías cuando no existen registros o no se encuentran coincidencias.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas
 pruebas antes de considerarse terminado.
@@ -252,6 +257,7 @@ Actualmente se han completado la implementación y validación de los siguientes
 -   **RF5:** Consultar usuarios administrativos.
 -   **RF6:** Actualizar y gestionar el estado de usuarios administrativos.
 -   **RF11:** Registrar tipo de membresía.
+-   **RF12:** Consultar tipos de membresía.
 
 También se encuentra implementada y probada la gestión de expiración de
 sesiones por inactividad.
