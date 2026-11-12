@@ -467,4 +467,455 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
             'rol' => 'empleado',
         ]);
     }
+
+    /**
+     * Un dueño puede desactivar a otro usuario administrativo durante su actualización.
+     */
+    public function test_dueno_puede_desactivar_a_otro_usuario_administrativo(): void
+    {
+        // Creamos un dueño activo que realizará la operación.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo que será actualizado.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Enviamos la actualización únicamente con el nuevo estado.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.activo', false);
+
+        // Comprobamos que el empleado continúa existiendo y está inactivo.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado123',
+            'rol' => 'empleado',
+            'activo' => false,
+        ]);
+    }
+
+    /**
+     * Un dueño puede activar a otro usuario administrativo durante su actualización.
+     */
+    public function test_dueno_puede_activar_a_otro_usuario_administrativo(): void
+    {
+        // Creamos un dueño activo que realizará la operación.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado inactivo que será actualizado.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => false,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Enviamos la actualización únicamente con el nuevo estado.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'activo' => true,
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.activo', true);
+
+        // Comprobamos que el empleado continúa existiendo y está activo.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado123',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * Un dueño puede actualizar el nombre de usuario y el estado simultáneamente.
+     */
+    public function test_dueno_puede_actualizar_nombre_y_estado_simultaneamente(): void
+    {
+        // Creamos un dueño activo que realizará la operación.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo que será actualizado.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Actualizamos el nombre de usuario y desactivamos la cuenta.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'usuario' => 'empleado_nuevo',
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.usuario', 'empleado_nuevo')
+            ->assertJsonPath('usuario.activo', false);
+
+        // Comprobamos que ambos cambios se hayan guardado.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado_nuevo',
+            'rol' => 'empleado',
+            'activo' => false,
+        ]);
+    }
+
+    /**
+     * Un dueño puede actualizar el rol y el estado simultáneamente.
+     */
+    public function test_dueno_puede_actualizar_rol_y_estado_simultaneamente(): void
+    {
+        // Creamos un dueño activo que realizará la operación.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo que será actualizado.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Convertimos al empleado en dueño y desactivamos su cuenta.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'rol' => 'dueno',
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.rol', 'dueno')
+            ->assertJsonPath('usuario.activo', false);
+
+        // Comprobamos que ambos cambios se hayan guardado.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado123',
+            'rol' => 'dueno',
+            'activo' => false,
+        ]);
+    }
+
+    /**
+     * No se puede desactivar al último dueño activo mediante la actualización.
+     */
+    public function test_no_se_puede_desactivar_al_ultimo_dueno_activo_mediante_actualizacion(): void
+    {
+        // Creamos el único dueño activo del sistema.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Intentamos desactivar su propia cuenta.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $dueno->id_usuario),
+            [
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la operación sea rechazada.
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('activo');
+
+        // Comprobamos que el dueño continúe activo.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $dueno->id_usuario,
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * Un dueño no puede desactivar su propia cuenta aunque existan otros dueños activos.
+     */
+    public function test_dueno_no_puede_desactivar_su_propia_cuenta_si_existen_otros_duenos_activos(): void
+    {
+        // Creamos el dueño que realizará la operación.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos otro dueño activo.
+        UsuarioAdministrativo::create([
+            'usuario' => 'dueno456',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Intentamos desactivar nuestra propia cuenta.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $dueno->id_usuario),
+            [
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la operación sea rechazada.
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('activo');
+
+        // Comprobamos que el dueño continúe activo.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $dueno->id_usuario,
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * No se permite actualizar con un estado que no sea booleano.
+     */
+    public function test_no_se_permite_actualizar_con_un_estado_no_booleano(): void
+    {
+        // Creamos un dueño activo.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Intentamos actualizar con un estado no booleano.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'activo' => 'inactivo',
+            ]
+        );
+
+        // Verificamos que la validación rechace el valor.
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('activo');
+
+        // Comprobamos que el empleado conserve su estado original.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * No se permite actualizar con el estado vacío.
+     */
+    public function test_no_se_permite_actualizar_con_el_estado_vacio(): void
+    {
+        // Creamos un dueño activo.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Intentamos actualizar enviando el estado vacío.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'activo' => '',
+            ]
+        );
+
+        // Verificamos que la validación rechace el valor.
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors('activo');
+
+        // Comprobamos que el empleado conserve su estado original.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * Se conserva el estado actual cuando no se envía el atributo activo.
+     */
+    public function test_se_conserva_el_estado_cuando_no_se_envia_activo(): void
+    {
+        // Creamos un dueño activo.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado inactivo.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => false,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Actualizamos únicamente el nombre de usuario.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'usuario' => 'empleado_nuevo',
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.usuario', 'empleado_nuevo')
+            ->assertJsonPath('usuario.activo', false);
+
+        // Comprobamos que el nombre cambió y el estado se conservó.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado_nuevo',
+            'activo' => false,
+        ]);
+    }
+
+    /**
+     * Un dueño puede actualizar todos los atributos de otro usuario simultáneamente.
+     */
+    public function test_dueno_puede_actualizar_todos_los_atributos_simultaneamente(): void
+    {
+        // Creamos un dueño activo.
+        $dueno = UsuarioAdministrativo::create([
+            'usuario' => 'dueno123',
+            'password' => 'Password123!',
+            'rol' => 'dueno',
+            'activo' => true,
+        ]);
+
+        // Creamos un empleado activo.
+        $empleado = UsuarioAdministrativo::create([
+            'usuario' => 'empleado123',
+            'password' => 'Password123!',
+            'rol' => 'empleado',
+            'activo' => true,
+        ]);
+
+        // Autenticamos al dueño.
+        $this->actingAs($dueno, 'web');
+
+        // Actualizamos todos los atributos del empleado.
+        $response = $this->patchJson(
+            route('usuarios-administrativos.update', $empleado->id_usuario),
+            [
+                'usuario' => 'empleado_nuevo',
+                'rol' => 'dueno',
+                'password' => 'NuevaPassword123!',
+                'password_confirmation' => 'NuevaPassword123!',
+                'activo' => false,
+            ]
+        );
+
+        // Verificamos que la actualización sea exitosa.
+        $response->assertOk()
+            ->assertJsonPath('usuario.usuario', 'empleado_nuevo')
+            ->assertJsonPath('usuario.rol', 'dueno')
+            ->assertJsonPath('usuario.activo', false);
+
+        // Comprobamos que los datos se hayan guardado correctamente.
+        $this->assertDatabaseHas('usuario_administrativo', [
+            'id_usuario' => $empleado->id_usuario,
+            'usuario' => 'empleado_nuevo',
+            'rol' => 'dueno',
+            'activo' => false,
+        ]);
+
+        // Verificamos que la contraseña nueva se haya almacenado correctamente.
+        $this->assertTrue(
+            Hash::check('NuevaPassword123!', $empleado->fresh()->password)
+        );
+    }
 }

@@ -27,6 +27,7 @@ class ActualizarUsuarioAdministrativoRequest extends FormRequest
     {
         return [
             'usuario' => [
+                'sometimes',
                 'required',
                 'string',
                 'min:5',
@@ -54,10 +55,17 @@ class ActualizarUsuarioAdministrativoRequest extends FormRequest
             ],
 
             'rol' => [
+                'sometimes',
                 'required',
                 'string',
                 // Solo permitimos los roles definidos en GymFlow.
                 Rule::in(['dueno', 'empleado']),
+            ],
+
+            'activo' => [
+                'sometimes',
+                'required',
+                'boolean',
             ],
         ];
     }
@@ -88,6 +96,10 @@ class ActualizarUsuarioAdministrativoRequest extends FormRequest
             'rol.required' => 'El rol del usuario es obligatorio.',
             'rol.string' => 'El rol debe ser un texto.',
             'rol.in' => 'El rol seleccionado no es válido.',
+
+            // Estado.
+            'activo.required' => 'El estado de la cuenta es obligatorio.',
+            'activo.boolean' => 'El estado de la cuenta debe ser un valor booleano válido.',
         ];
     }
 }
