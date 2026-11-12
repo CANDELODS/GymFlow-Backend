@@ -38,13 +38,13 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
 
     // RF13: Actualizar y gestionar estado del tipo de membresía (Actualización).
     Route::patch(
-        '/tipos-membresia/{id}',
+        '/tipos-membresia/{tipoMembresia}',
         [TipoMembresiaController::class, 'update']
     )->name('tipos-membresia.update');
 
     // RF13: Actualizar y gestionar estado del tipo de membresía (Cambio de estado).
     Route::patch(
-        '/tipos-membresia/{id}/estado',
+        '/tipos-membresia/{tipoMembresia}/estado',
         [TipoMembresiaController::class, 'cambiarEstado']
     )->name('tipos-membresia.estado');
 });
