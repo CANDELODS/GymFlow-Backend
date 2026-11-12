@@ -188,11 +188,11 @@ También se realizó una prueba manual desde el navegador, comprobando que una s
 
 - `docs/modulos/autenticacion.md`
 - `app/Models/UsuarioAdministrativo.php`
-- `app/Http/Requests/UsuarioAdministrativoLoginRequest.php`
+- `app/Http/Requests/Auth/UsuarioAdministrativoLoginRequest.php`
 - `app/Actions/Auth/AutenticarUsuarioAdministrativo.php`
 - `app/Actions/Auth/GestionarIntentosFallidos.php`
 - `app/Providers/FortifyServiceProvider.php`
 - `app/Http/Middleware/VerificarExpiracionSesion.php`
 - `bootstrap/app.php`
-- `tests/Feature/UsuarioAdministrativoLoginTest.php`
-- `tests/Feature/UsuarioAdministrativoSesionTest.php`
+- `tests/Feature/Auth/UsuarioAdministrativoLoginTest.php`
+- `tests/Feature/Auth/UsuarioAdministrativoSesionTest.php`

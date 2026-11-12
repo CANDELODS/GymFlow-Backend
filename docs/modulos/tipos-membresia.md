@@ -544,7 +544,7 @@ Se implementaron 13 pruebas para verificar la activación y desactivación de ti
 Última ejecución completa:
 
 ```text
-Tests: 149 passed (653 assertions)
+Tests: 65 passed (289 assertions)
 ```
 
 Las pruebas de RF11 se ejecutan mediante:

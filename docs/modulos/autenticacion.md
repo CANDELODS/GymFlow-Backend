@@ -65,7 +65,7 @@ Características principales:
 
 ### UsuarioAdministrativoLoginRequest
 
-Archivo: `app/Http/Requests/UsuarioAdministrativoLoginRequest.php`
+Archivo: `app/Http/Requests/Auth/UsuarioAdministrativoLoginRequest.php`
 
 Personaliza la validación de las solicitudes de inicio de sesión.
 
@@ -151,7 +151,7 @@ mediante Vue Router.
 
 ### CambiarContrasenaRequest
 
-Archivo: `app/Http/Requests/CambiarContrasenaRequest.php`
+Archivo: `app/Http/Requests/Auth/CambiarContrasenaRequest.php`
 
 Valida los datos enviados para cambiar la contraseña del usuario
 autenticado.
@@ -510,7 +510,7 @@ Se implementaron pruebas de autenticación y sesiones mediante PHPUnit.
 
 ### Pruebas de autenticación
 
-Archivo: `tests/Feature/UsuarioAdministrativoLoginTest.php`
+Archivo: `tests/Feature/Auth/UsuarioAdministrativoLoginTest.php`
 
 Se comprueban, entre otros escenarios:
 
@@ -527,7 +527,7 @@ Se comprueban, entre otros escenarios:
 
 ### Pruebas de cierre de sesión
 
-Archivo: `tests/Feature/UsuarioAdministrativoLogoutTest.php`
+Archivo: `tests/Feature/Auth/UsuarioAdministrativoLogoutTest.php`
 
 Se comprueban los siguientes escenarios:
 
@@ -538,7 +538,7 @@ Se comprueban los siguientes escenarios:
 
 ### Pruebas de sesiones
 
-Archivo: `tests/Feature/UsuarioAdministrativoSesionTest.php`
+Archivo: `tests/Feature/Auth/UsuarioAdministrativoSesionTest.php`
 
 Se comprueban:
 
@@ -553,7 +553,7 @@ Se comprueban:
 
 ### Pruebas de cambio de contraseña
 
-Archivo: `tests/Feature/CambiarContrasenaTest.php`
+Archivo: `tests/Feature/Auth/CambiarContrasenaTest.php`
 
 Se comprueban los siguientes escenarios:
 
@@ -578,10 +578,8 @@ integración con dos navegadores independientes.
 Última ejecución completa:
 
 ``` text
-Tests: 35 passed (156 assertions)
+Tests: 36 passed (160 assertions)
 ```
-
-Este resultado incluye las pruebas de ejemplo iniciales de Laravel.
 
 La suite completa se ejecuta mediante:
 

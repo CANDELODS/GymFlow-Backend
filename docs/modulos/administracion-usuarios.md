@@ -244,7 +244,7 @@ Atributos expuestos:
 
 Se excluyen los atributos internos y sensibles, como la contraseña, los intentos fallidos y la fecha de bloqueo.
 
-Este Resource se reutiliza en las operaciones de registro y consulta de usuarios administrativos.
+Este Resource se reutiliza en las operaciones de registro, consulta, actualización y cambio de estado de usuarios administrativos.
 
 ### VerificarRolUsuarioAdministrativo
 
@@ -519,7 +519,7 @@ Las rutas están protegidas mediante `auth:sanctum`, `usuario.activo` y autoriza
 
 ### Pruebas de registro de usuarios administrativos
 
-Archivo: `tests/Feature/RegistrarUsuarioAdministrativoTest.php`
+Archivo: `tests/Feature/UsuarioAdministrativo/RegistrarUsuarioAdministrativoTest.php`
 
 Se implementaron pruebas mediante PHPUnit para verificar el comportamiento del registro.
 
@@ -542,7 +542,7 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento del r
 
 ### Pruebas de consulta de usuarios administrativos
 
-Archivo: `tests/Feature/ConsultarUsuariosAdministrativosTest.php`
+Archivo: `tests/Feature/UsuarioAdministrativo/ConsultarUsuariosAdministrativosTest.php`
 
 Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la consulta.
 
@@ -563,7 +563,7 @@ Se implementaron pruebas mediante PHPUnit para verificar el comportamiento de la
 
 ### Pruebas de actualización de usuarios administrativos
 
-Archivo: `tests/Feature/ActualizarUsuarioAdministrativoTest.php`
+Archivo: `tests/Feature/UsuarioAdministrativo/ActualizarUsuarioAdministrativoTest.php`
 
 **Escenarios comprobados:**
 
@@ -581,7 +581,7 @@ Archivo: `tests/Feature/ActualizarUsuarioAdministrativoTest.php`
 
 ### Pruebas de cambio de estado
 
-Archivo: `tests/Feature/CambiarEstadoUsuarioAdministrativoTest.php`
+Archivo: `tests/Feature/UsuarioAdministrativo/CambiarEstadoUsuarioAdministrativoTest.php`
 
 **Escenarios comprobados:**
 
@@ -600,13 +600,13 @@ Comprueba que la acción rechace la desactivación del último dueño activo y q
 
 ### Pruebas de concurrencia
 
-Archivo: `tests/Feature/ConcurrenciaUsuariosAdministrativosTest.php`
+Archivo: `tests/Feature/UsuarioAdministrativo/ConcurrenciaUsuariosAdministrativosTest.php`
 
 Comprueba mediante procesos independientes que dos operaciones simultáneas no puedan desactivar ni cambiar el rol de los dos últimos dueños activos, dejando el sistema sin un dueño activo.
 
 ### Pruebas de verificación de cuenta activa
 
-Archivo: `tests/Feature/VerificarUsuarioActivoTest.php`
+Archivo: `tests/Feature/Auth/VerificarUsuarioActivoTest.php`
 
 Comprueba que una cuenta activa pueda acceder a rutas protegidas, que una cuenta inactiva sea rechazada y que una sesión previamente autenticada pierda el acceso cuando la cuenta es desactivada.
 
@@ -615,7 +615,7 @@ Comprueba que una cuenta activa pueda acceder a rutas protegidas, que una cuenta
 Última ejecución completa:
 
 ```text
-Tests: 85 passed (365 assertions)
+Tests: 72 passed (326 assertions)
 ```
 
 Las pruebas de RF4 se ejecutan mediante:
