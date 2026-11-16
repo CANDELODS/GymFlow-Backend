@@ -12,6 +12,8 @@ Además, permite actualizar de forma parcial o simultánea el nombre, la duraci�
 
 Las operaciones del módulo están disponibles para usuarios administrativos con rol Dueño o Empleado.
 
+La desactivación de un tipo de membresía no implica su eliminación. Si existen membresías adquiridas asociadas, estas conservan su información histórica y permanecen intactas. Un tipo desactivado deja de estar disponible para nuevas adquisiciones, pero no afecta los registros que fueron creados anteriormente.
+
 ### Funcionalidades implementadas
 
 - Registro de nuevos tipos de membresía.
@@ -31,6 +33,8 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 - Activación y desactivación de tipos de membresía mediante una operación específica.
 - Protección de las operaciones de actualización frente a usuarios no autenticados e inactivos.
 - Validación del estado y conservación de los atributos no modificados.
+- Conservación de las membresías adquiridas asociadas al desactivar un tipo de membresía.
+- Protección de las operaciones concurrentes de registro de membresías adquiridas y desactivación de tipos mediante transacciones y bloqueos de registros.
 - Validación automatizada de los escenarios de actualización y cambio de estado.
 
 ## 2. Tecnologías utilizadas
@@ -215,6 +219,10 @@ Centraliza la activación y desactivación de tipos de membresía.
 
 La operación se ejecuta dentro de una transacción y vuelve a consultar el registro utilizando `lockForUpdate()` antes de modificar su estado. Esto permite serializar los cambios concurrentes sobre el mismo tipo de membresía.
 
+El bloqueo también interviene en la coordinación con el registro de membresías adquiridas, ya que ambas operaciones consultan y bloquean el mismo registro de tipo de membresía. De esta manera, se evita que una adquisición y una desactivación trabajen simultáneamente sobre estados contradictorios.
+
+La desactivación modifica únicamente el atributo `activo`. No elimina el tipo de membresía ni modifica las adquisiciones históricas asociadas.
+
 ### TipoMembresiaResource
 
 Archivo: `app/Http/Resources/TipoMembresiaResource.php`
@@ -376,6 +384,8 @@ Ejemplo de solicitud para desactivar un tipo:
 
 La operación se ejecuta mediante una transacción y bloquea el registro durante el cambio de estado. La respuesta exitosa utiliza HTTP `200 OK` y devuelve el recurso actualizado.
 
+La desactivación no elimina el registro ni afecta las membresías adquiridas que ya estén asociadas a ese tipo. Estas conservan los datos históricos almacenados al momento de su registro.
+
 ## 5. Reglas de validación y seguridad
 
 ### Autorización por roles
@@ -411,6 +421,28 @@ El campo `activo` admite valores booleanos válidos. Si se omite, el estado actu
 ### Cambio de estado
 
 La operación específica de cambio de estado modifica únicamente el atributo `activo`. Se ejecuta dentro de una transacción y utiliza `lockForUpdate()` para bloquear el registro mientras se realiza la modificación.
+
+### Relación con las membresías adquiridas
+
+Un tipo de membresía puede estar asociado a una o varias membresías adquiridas por los clientes.
+
+Cuando un tipo de membresía se desactiva:
+
+- Su registro permanece en la base de datos.
+- Deja de estar disponible para nuevas adquisiciones, ya que el registro de membresías adquiridas exige que el tipo se encuentre activo.
+- Las membresías adquiridas anteriormente permanecen intactas.
+- Los snapshots almacenados en cada adquisición conservan el nombre y la duración que tenía el tipo al momento del registro.
+- La desactivación no modifica las fechas, los valores pagados ni los demás datos históricos de las adquisiciones.
+
+La integridad de esta relación también está protegida mediante las restricciones de claves foráneas de la base de datos, que impiden eliminar un tipo de membresía que tenga adquisiciones asociadas.
+
+### Control de concurrencia
+
+El registro de una membresía adquirida y la desactivación de su tipo pueden ejecutarse desde procesos independientes.
+
+Ambas operaciones utilizan transacciones y `lockForUpdate()` sobre el mismo registro de `tipo_membresia`. Esto permite que las operaciones se serialicen y evita que una adquisición se registre utilizando un tipo que ya fue desactivado antes de que el registro obtenga el bloqueo y compruebe su estado.
+
+Si el registro de la adquisición obtiene primero el bloqueo, puede completarse antes de que se desactive el tipo. Si la desactivación obtiene primero el bloqueo, el registro posterior debe rechazarse al comprobar que el tipo ya no está activo.
 
 ### Estado inicial
 
@@ -541,7 +573,7 @@ Se implementaron 13 pruebas para verificar la activación y desactivación de ti
 
 ### Resultado de las pruebas
 
-Última ejecución completa:
+Última ejecución registrada para los requerimientos de este módulo:
 
 ```text
 Tests: 65 passed (289 assertions)
@@ -577,3 +609,5 @@ herd php artisan test
 El módulo de gestión de tipos de membresía cuenta con el registro (RF11), la consulta (RF12) y la actualización y gestión del estado (RF13), implementados y validados mediante pruebas automatizadas.
 
 Las operaciones de actualización permiten modificar de forma parcial o simultánea los atributos del tipo de membresía. También se dispone de una operación específica para activar o desactivar un registro.
+
+La desactivación de un tipo de membresía conserva los registros históricos de las adquisiciones asociadas y evita que se utilice para nuevas adquisiciones. El control de concurrencia entre el registro de adquisiciones y la desactivación protege la consistencia de estas operaciones.

@@ -50,11 +50,11 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 - [x] **RF11 -- Registrar tipo de membresía:** registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
 - [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 - [x] **RF13 -- Actualizar y gestionar el estado de tipos de membresía:** actualización parcial o simultánea del nombre, duración, precio y estado; activación y desactivación mediante un endpoint específico. Acceso para dueños y empleados, con validación de datos y protección de cuentas inactivas.
+- [x] **RF14 -- Registrar membresía adquirida:** registro de membresías para clientes activos mediante la selección de un tipo de membresía disponible, fecha de inicio, valor pagado y método de pago. El sistema calcula automáticamente la fecha de vencimiento y conserva snapshots del nombre y duración del tipo de membresía para proteger el historial de las adquisiciones. Incluye control de concurrencia durante el registro y la desactivación de tipos de membresía.
 
 ### En desarrollo / pendientes
 
 - [ ] Gestión de clientes.
-- [ ] Gestión de membresías adquiridas.
 - [ ] Registro y auditoría de modificaciones.
 - [ ] Dashboard y reportes administrativos.
 
@@ -91,6 +91,7 @@ app/
 ├── Actions/
 │   ├── Auth/
 │   ├── Fortify/
+│   ├── MembresiaAdquirida/
 │   ├── TipoMembresia/
 │   └── UsuarioAdministrativo/
 │
@@ -99,6 +100,7 @@ app/
     ├── Middleware/
     ├── Requests/
     │   ├── Auth/
+    │   ├── MembresiaAdquirida/
     │   ├── TipoMembresia/
     │   └── UsuarioAdministrativo/
     └── Resources/
@@ -106,6 +108,7 @@ app/
 tests/
 ├── Feature/
 │   ├── Auth/
+│   ├── MembresiaAdquirida/
 │   ├── TipoMembresia/
 │   └── UsuarioAdministrativo/
 ├── Support/
@@ -135,6 +138,7 @@ La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](doc
 | [Administración de usuarios](docs/modulos/administracion-usuarios.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de administración de usuarios administrativos. |
 | [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
 | [Tipos de membresía](docs/modulos/tipos-membresia.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de gestión de tipos de membresía. |
+| [Membresías adquiridas](docs/modulos/membresias-adquiridas.md) | Implementación, componentes, reglas de negocio, validaciones y pruebas del módulo de registro de membresías adquiridas. |
 
 La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
 
@@ -213,7 +217,7 @@ herd php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 159 passed (693 assertions)
+Tests: 185 passed (810 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -253,6 +257,14 @@ Las pruebas actuales incluyen:
 - Protección de las operaciones de actualización frente a usuarios no autenticados e inactivos.
 - Validación del estado y conservación de los demás atributos cuando no se modifican.
 - Respuestas vacías cuando no existen registros o no se encuentran coincidencias.
+- Registro de membresías adquiridas por dueños y empleados.
+- Validación de clientes y tipos de membresía existentes y activos.
+- Validación de fechas de inicio, valores pagados y métodos de pago permitidos.
+- Cálculo automático de la fecha de vencimiento según la duración del tipo de membresía.
+- Conservación de snapshots del nombre y duración del tipo de membresía al momento de la adquisición.
+- Persistencia de los datos históricos de una adquisición al modificar o desactivar su tipo de membresía.
+- Validación de fechas de vencimiento en cambios de mes y año, y de membresías con duración de un día.
+- Control de concurrencia entre el registro de una membresía adquirida y la desactivación de su tipo de membresía.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas pruebas antes de considerarse terminado.
 
@@ -271,6 +283,7 @@ Actualmente se han completado la implementación y validación de los siguientes
 - **RF11:** Registrar tipo de membresía.
 - **RF12:** Consultar tipos de membresía.
 - **RF13:** Actualizar y gestionar el estado de tipos de membresía.
+- **RF14:** Registrar membresía adquirida.
 
 También se encuentra implementada y probada la gestión de expiración de sesiones por inactividad.
 
