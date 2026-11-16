@@ -3,6 +3,7 @@
 use App\Http\Controllers\TipoMembresiaController;
 use App\Http\Controllers\UsuarioAdministrativoController;
 use App\Http\Controllers\CambiarContrasenaController;
+use App\Http\Controllers\MembresiaAdquiridaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,12 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         '/tipos-membresia/{tipoMembresia}/estado',
         [TipoMembresiaController::class, 'cambiarEstado']
     )->name('tipos-membresia.estado');
+
+    // RF14: Registrar membresía del cliente. 
+    Route::post(
+        '/membresias-adquiridas',
+        [MembresiaAdquiridaController::class, 'store']
+    )->name('membresias-adquiridas.store');
 });
 
 // Rutas para la administración de usuarios administrativos.

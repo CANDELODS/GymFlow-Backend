@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class UsuarioAdministrativo extends Authenticatable
@@ -33,5 +34,14 @@ class UsuarioAdministrativo extends Authenticatable
             'bloqueado_hasta' => 'datetime',
         ];
     }
-}
 
+    // Membresías adquiridas registradas por este usuario administrativo.
+    public function membresiasRegistradas(): HasMany
+    {
+        return $this->hasMany(
+            MembresiaAdquirida::class,
+            'id_usuario_registro', // Clave foránea en membresia_adquirida
+            'id_usuario' // Clave local en usuario_administrativo
+        );
+    }
+}

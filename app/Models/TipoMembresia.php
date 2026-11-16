@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 
 class TipoMembresia extends Model
@@ -28,5 +29,15 @@ class TipoMembresia extends Model
             'precio' => 'decimal:2',
             'activo' => 'boolean',
         ];
+    }
+
+    // Membresías adquiridas correspondientes a este tipo.
+    public function membresiasAdquiridas(): HasMany
+    {
+        return $this->hasMany(
+            MembresiaAdquirida::class,
+            'id_tipo_membresia', // Clave foránea en membresia_adquirida
+            'id_tipo_membresia' // Clave local en tipo_membresia
+        );
     }
 }
