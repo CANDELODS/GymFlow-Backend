@@ -3,6 +3,7 @@
 use App\Http\Controllers\TipoMembresiaController;
 use App\Http\Controllers\UsuarioAdministrativoController;
 use App\Http\Controllers\CambiarContrasenaController;
+use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\MembresiaAdquiridaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,12 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         CambiarContrasenaController::class,
         'update',
     ])->name('usuario.contrasena.update');
+
+    // RF7: Registrar cliente.
+    Route::post('/clientes', [
+        ClienteController::class,
+        'store',
+    ])->name('cliente.store');
 
     // RF11: Registrar tipo de membresía
     Route::post(
