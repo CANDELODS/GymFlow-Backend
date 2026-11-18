@@ -74,9 +74,30 @@ Permite realizar la operación a usuarios autenticados con rol `dueno` o `emplea
 - `valor_pagado`: obligatorio, de tipo numérico y mayor que cero.
 - `metodo_pago`: obligatorio, de tipo texto y debe pertenecer a las opciones permitidas: `efectivo`, `nequi`, `bancolombia` u `otro`.
 
-También proporciona mensajes de validación personalizados en español.
+Las reglas de validación correspondientes a los campos de la membresía se obtienen mediante la clase `ReglasMembresiaAdquirida`, evitando duplicar las mismas definiciones en los diferentes componentes del sistema.
+
+El Form Request también proporciona mensajes de validación personalizados en español y atributos descriptivos para los errores.
 
 La fecha de vencimiento no se recibe desde el frontend, ya que es calculada por el backend a partir de la fecha de inicio y la duración del tipo de membresía.
+
+### ReglasMembresiaAdquirida
+
+Archivo: `app/Rules/ReglasMembresiaAdquirida.php`
+
+Centraliza las reglas de validación correspondientes a los datos de una membresía adquirida.
+
+La clase proporciona tres métodos estáticos:
+
+- `rules()`: devuelve las reglas de validación de los campos de la membresía.
+- `messages()`: proporciona los mensajes personalizados para los errores de validación.
+- `attributes()`: define los nombres descriptivos de los atributos.
+
+Esta implementación permite reutilizar las mismas reglas de validación en diferentes componentes del sistema, manteniendo la consistencia de las validaciones y evitando duplicar código.
+
+Actualmente, la clase es utilizada por `RegistrarMembresiaAdquiridaRequest` y también permite su reutilización en otros procesos, como el registro de clientes con su primera membresía.
+
+La clase no contiene lógica de negocio ni ejecuta operaciones sobre la base de datos; su responsabilidad se limita a proporcionar las definiciones necesarias para validar los datos de una membresía adquirida.
+
 
 ### RegistrarMembresiaAdquirida
 
@@ -417,12 +438,6 @@ La suite completa del proyecto se ejecuta mediante:
 
 ```bash
 herd php artisan test
-```
-
-Última ejecución completa registrada:
-
-```text
-Tests: 185 passed (810 assertions)
 ```
 
 ## 8. Estado del módulo
