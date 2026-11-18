@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Cliente\ConsultarClientes;
+use App\Http\Requests\Cliente\ConsultarClientesRequest;
 use App\Actions\MembresiaAdquirida\RegistrarMembresiaAdquirida;
 use App\Rules\ReglasMembresiaAdquirida;
 use App\Actions\Cliente\RegistrarCliente;
@@ -13,6 +15,23 @@ use Illuminate\Support\Facades\Validator;
 
 class ClienteController extends Controller
 {
+    /**
+     * Consulta los clientes registrados aplicando los filtros disponibles.
+     */
+    public function index(
+        ConsultarClientesRequest $request,
+        ConsultarClientes $consultarClientes
+    ) {
+        // Ejecutamos la consulta con los filtros validados del request.
+        $clientes = $consultarClientes->ejecutar(
+            $request->validated()
+        );
+
+        // Transformamos los resultados mediante ClienteResource,
+        // conservando la estructura de paginación de Laravel.
+        return ClienteResource::collection($clientes);
+    }
+
     /**
      * Registra un nuevo cliente.
      */

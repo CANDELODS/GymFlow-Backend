@@ -26,6 +26,12 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         'store',
     ])->name('cliente.store');
 
+    // RF8: Consultar clientes.
+    Route::get('/clientes', [
+        ClienteController::class,
+        'index',
+    ])->name('cliente.index');
+
     // RF11: Registrar tipo de membresía
     Route::post(
         '/tipos-membresia',
