@@ -2,13 +2,17 @@
 
 ## 1. Objetivo y alcance
 
-El módulo de gestión de clientes permite registrar los clientes del gimnasio, almacenando su información personal y de contacto, así como la autorización para el tratamiento de sus datos personales.
+El módulo de gestión de clientes permite registrar y consultar los clientes del gimnasio, almacenando su información personal y de contacto, así como la autorización para el tratamiento de sus datos personales.
 
 El registro contempla los nombres, apellidos, documento de identidad y teléfono del cliente. El sistema verifica que el documento no se encuentre registrado previamente y establece automáticamente el estado inicial del cliente como activo.
 
 Una característica importante del módulo es la posibilidad de registrar la primera membresía del cliente durante el mismo proceso de creación. De esta manera, el usuario administrativo puede registrar al cliente y, opcionalmente, asociarle una membresía adquirida mediante una única solicitud HTTP.
 
 El registro de la membresía es independiente de la creación del cliente. Si los datos de la membresía no cumplen las reglas de validación o se presenta un error durante su registro, el cliente permanece almacenado en la base de datos.
+
+Adicionalmente, el módulo permite consultar los clientes registrados mediante búsqueda y filtros, facilitando la identificación de clientes y el seguimiento del estado de sus membresías adquiridas.
+
+La consulta contempla la última membresía adquirida por cada cliente, cuyo estado se determina automáticamente según su fecha de vencimiento.
 
 Las operaciones del módulo están disponibles para usuarios administrativos con rol Dueño o Empleado.
 
@@ -23,10 +27,15 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 - Registro opcional de la primera membresía durante la creación del cliente.
 - Reutilización de las reglas de validación y la lógica de registro de membresías adquiridas.
 - Conservación del cliente cuando los datos de la membresía son inválidos o su registro presenta un error.
-- Validación de los datos mediante un Form Request.
-- Protección de la operación mediante autenticación y verificación del estado de la cuenta.
-- Transformación de la información del cliente mediante un Laravel Resource.
-- Validación automatizada de los escenarios de registro y registro opcional de membresía.
+- Consulta de clientes por parte de dueños y empleados.
+- Búsqueda por nombres, apellidos, documento y teléfono mediante coincidencias parciales.
+- Filtrado por estado del cliente: activo o inactivo.
+- Filtrado por estado de la última membresía adquirida: activa, por vencer, vencida o sin membresía.
+- Clasificación automática del estado de la membresía según su fecha de vencimiento.
+- Consulta de la última membresía adquirida de cada cliente.
+- Paginación de cinco registros por página y conservación de filtros entre páginas.
+- Validación de los parámetros de búsqueda, filtrado y paginación.
+- Validación automatizada de los escenarios de registro y consulta de clientes.
 
 ## 2. Tecnologías utilizadas
 
@@ -38,6 +47,7 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 | PHPUnit | Pruebas automatizadas. |
 | Laravel Validation | Validación de los datos recibidos. |
 | Laravel Eloquent | Persistencia de información mediante modelos. |
+| Laravel Resources | Transformación y estructuración de las respuestas JSON. |
 
 ## 3. Componentes y responsabilidades
 
@@ -47,7 +57,16 @@ Archivo: `app/Models/Cliente.php`
 
 Representa el modelo asociado a la tabla `cliente`.
 
-El modelo permite gestionar la información de los clientes y su relación con las membresías adquiridas.
+El modelo permite gestionar la información de los clientes y sus relaciones con las membresías adquiridas.
+
+Entre sus relaciones se encuentran:
+
+- `membresiasAdquiridas()`: permite obtener las membresías adquiridas asociadas al cliente.
+- `ultimaMembresiaAdquirida()`: permite obtener la última membresía adquirida del cliente mediante `ofMany()`.
+
+La relación `ultimaMembresiaAdquirida()` utiliza `fecha_inicio` como criterio principal de selección y emplea `created_at` e `id_membresia_adquirida` como criterios adicionales de desempate.
+
+Esta relación permite consultar la última adquisición sin recuperar innecesariamente todo el historial de membresías del cliente.
 
 ### RegistrarClienteRequest
 
@@ -74,6 +93,27 @@ Los datos de la membresía no se validan en este componente, ya que el cliente d
 
 También proporciona mensajes de validación personalizados en español y atributos descriptivos para los errores.
 
+### ConsultarClientesRequest
+
+Archivo: `app/Http/Requests/Cliente/ConsultarClientesRequest.php`
+
+Valida y autoriza las solicitudes de consulta de clientes.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Parámetros validados:**
+
+- `buscar`: opcional, de tipo texto y con un máximo de 100 caracteres. Permite buscar clientes por nombres, apellidos, documento o teléfono.
+- `activo`: opcional y debe contener un valor booleano válido. Permite filtrar clientes activos o inactivos.
+- `estado_membresia`: opcional y debe corresponder a uno de los estados permitidos: `activa`, `por_vencer`, `vencida` o `sin_membresia`.
+- `page`: opcional, debe ser un número entero mayor o igual a 1. Permite especificar la página que se desea consultar.
+
+El Form Request centraliza la validación de los parámetros de consulta y evita que se ejecuten búsquedas con valores inválidos.
+
+También proporciona mensajes de validación personalizados en español.
+
 ### RegistrarCliente
 
 Archivo: `app/Actions/Cliente/RegistrarCliente.php`
@@ -93,13 +133,46 @@ La fecha de autorización se genera en el backend, por lo que no puede ser estab
 
 La acción no registra membresías adquiridas. Esta operación se ejecuta posteriormente desde el controlador cuando se solicita el registro opcional de la primera membresía.
 
+### ConsultarClientes
+
+Archivo: `app/Actions/Cliente/ConsultarClientes.php`
+
+Centraliza la lógica de consulta de clientes y aplicación de filtros.
+
+Responsabilidades:
+
+1. Recibir los parámetros previamente validados.
+2. Construir la consulta de clientes mediante Eloquent.
+3. Cargar anticipadamente la relación `ultimaMembresiaAdquirida`.
+4. Aplicar la búsqueda parcial en los campos nombres, apellidos, documento y teléfono.
+5. Aplicar el filtro por estado del cliente cuando se proporciona el parámetro `activo`.
+6. Aplicar el filtro por estado de la última membresía adquirida.
+7. Ordenar los resultados alfabéticamente por nombres y apellidos.
+8. Devolver los resultados paginados de cinco en cinco.
+9. Conservar los parámetros de consulta mediante `withQueryString()`.
+
+La búsqueda utiliza coincidencias parciales mediante `LIKE`, permitiendo encontrar clientes aunque el término ingresado corresponda solamente a una parte de sus datos.
+
+El filtro por estado de membresía consulta exclusivamente la última adquisición del cliente.
+
+Para determinar los estados se utiliza la fecha de vencimiento:
+
+- `activa`: la fecha de vencimiento es posterior a los próximos diez días.
+- `por_vencer`: la fecha de vencimiento se encuentra entre el día actual y los próximos diez días, incluyendo ambos límites.
+- `vencida`: la fecha de vencimiento es anterior al día actual.
+- `sin_membresia`: el cliente no tiene membresías adquiridas.
+
+La acción utiliza `whereHas()` para filtrar según la relación `ultimaMembresiaAdquirida` y `whereDoesntHave()` para identificar clientes sin adquisiciones registradas.
+
+La paginación conserva los filtros aplicados, permitiendo navegar entre páginas sin perder los criterios de búsqueda.
+
 ### ClienteController
 
 Archivo: `app/Http/Controllers/ClienteController.php`
 
-Coordina las solicitudes HTTP relacionadas con el registro de clientes.
+Coordina las solicitudes HTTP relacionadas con el registro y consulta de clientes.
 
-Implementa el método `store()`.
+Implementa los métodos `store()` e `index()`.
 
 **Responsabilidades de `store()`:**
 
@@ -116,6 +189,17 @@ Implementa el método `store()`.
 La creación del cliente y el registro de la membresía se manejan como operaciones independientes. Esto permite conservar el cliente aunque la segunda operación no pueda completarse.
 
 Los errores producidos durante el registro de la membresía se reportan mediante el mecanismo de excepciones de Laravel, sin exponer detalles internos al frontend.
+
+**Responsabilidades de `index()`:**
+
+1. Recibir la solicitud mediante `ConsultarClientesRequest`.
+2. Obtener los parámetros previamente validados mediante `validated()`.
+3. Ejecutar la acción `ConsultarClientes`.
+4. Recibir los resultados paginados de la consulta.
+5. Transformar los registros mediante `ClienteResource::collection()`.
+6. Devolver la colección JSON conservando la estructura de paginación de Laravel.
+
+El controlador delega la lógica de búsqueda, filtrado y paginación en la acción correspondiente, manteniendo separadas las responsabilidades de la capa HTTP y la lógica de aplicación.
 
 ### ClienteResource
 
@@ -135,6 +219,22 @@ Expone los datos correspondientes a:
 - `fecha_autorizacion`
 
 La fecha de autorización se presenta con el formato `Y-m-d H:i:s`.
+
+Adicionalmente, cuando la relación `ultimaMembresiaAdquirida` ha sido cargada, incluye:
+
+- `membresia`: contiene la información de la última membresía adquirida mediante `MembresiaAdquiridaResource`. Si el cliente no tiene adquisiciones, devuelve `null`.
+- `estado_membresia`: contiene el estado calculado de la última membresía adquirida.
+
+El estado de la membresía se determina en el Resource mediante la fecha de vencimiento, utilizando los mismos criterios establecidos para la consulta:
+
+- `activa`
+- `por_vencer`
+- `vencida`
+- `sin_membresia`
+
+El Resource utiliza `whenLoaded()` para incluir la información de la membresía únicamente cuando la relación ha sido cargada previamente.
+
+Esto permite reutilizar el mismo recurso tanto en el registro de clientes como en su consulta, sin generar consultas adicionales innecesarias.
 
 No se expone información interna adicional del modelo, como los campos de marcas de tiempo de Eloquent.
 
@@ -156,9 +256,11 @@ De esta manera, se evita duplicar las reglas y se mantiene la consistencia de la
 
 ## 4. Flujos de operación
 
+### 4.1. Registro de clientes
+
 El registro de clientes se realiza mediante una solicitud HTTP `POST`.
 
-### Endpoint
+#### Endpoint
 
 `POST /api/clientes`
 
@@ -173,7 +275,7 @@ La autorización por rol se realiza mediante `RegistrarClienteRequest`, que perm
 
 `cliente.store`
 
-### Proceso de registro
+#### Proceso de registro
 
 El proceso sigue este orden:
 
@@ -191,7 +293,7 @@ El proceso sigue este orden:
 12. Si se solicitó una membresía, el controlador valida sus datos y ejecuta la acción `RegistrarMembresiaAdquirida` cuando son válidos.
 13. El backend devuelve HTTP `201 Created` con el resultado del registro del cliente y, cuando corresponde, los datos de la membresía adquirida.
 
-### Registro opcional de la primera membresía
+#### Registro opcional de la primera membresía
 
 El registro de la primera membresía se realiza desde la misma solicitud utilizada para crear el cliente.
 
@@ -226,7 +328,7 @@ Cuando los datos son válidos, se incorpora el identificador del cliente y se ej
 
 Esta acción reutiliza la lógica implementada en RF14, incluyendo el cálculo de la fecha de vencimiento, la conservación de snapshots y el control de concurrencia.
 
-### Respuesta exitosa sin membresía
+#### Respuesta exitosa sin membresía
 
 Cuando no se solicita registrar una primera membresía, la API devuelve una respuesta JSON con la siguiente estructura:
 
@@ -248,7 +350,7 @@ Cuando no se solicita registrar una primera membresía, la API devuelve una resp
 
 Los valores son ilustrativos.
 
-### Respuesta exitosa con membresía
+#### Respuesta exitosa con membresía
 
 Cuando se registra correctamente el cliente y su primera membresía, la API devuelve HTTP `201 Created` con la siguiente estructura:
 
@@ -282,7 +384,7 @@ Cuando se registra correctamente el cliente y su primera membresía, la API devu
 
 Los valores son ilustrativos.
 
-### Respuesta cuando la membresía no puede registrarse
+#### Respuesta cuando la membresía no puede registrarse
 
 Si el cliente se crea correctamente, pero los datos de la membresía no cumplen las reglas de validación, el backend conserva el cliente y devuelve HTTP `201 Created`.
 
@@ -316,22 +418,197 @@ Los valores son ilustrativos.
 
 Si se produce una excepción durante el registro de la membresía, el controlador también conserva el cliente y reporta el error mediante Laravel. La respuesta comunica que no se pudo completar el registro de la membresía, sin exponer información interna de la excepción.
 
-### Respuestas de error
+### 4.2. Consulta de clientes
+
+La consulta de clientes se realiza mediante una solicitud HTTP `GET`.
+
+#### Endpoint
+
+`GET /api/clientes`
+
+**Middlewares aplicados:**
+
+- `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
+
+La autorización por rol se realiza mediante `ConsultarClientesRequest`, que permite únicamente a usuarios con rol `dueno` o `empleado`.
+
+**Nombre de ruta:**
+
+`cliente.index`
+
+#### Parámetros de consulta
+
+La consulta admite los siguientes parámetros opcionales:
+
+| Parámetro | Tipo | Descripción | Valores permitidos |
+|---|---|---|---|
+| `buscar` | String | Busca coincidencias parciales en nombres, apellidos, documento y teléfono. | Máximo 100 caracteres. |
+| `activo` | Boolean | Filtra según el estado del cliente. | `1` o `0`. |
+| `estado_membresia` | String | Filtra según el estado de la última membresía adquirida. | `activa`, `por_vencer`, `vencida`, `sin_membresia`. |
+| `page` | Integer | Especifica la página que se desea consultar. | Entero mayor o igual a 1. |
+
+Los parámetros pueden combinarse para obtener resultados más específicos.
+
+#### Ejemplos de consulta
+
+**Consultar todos los clientes:**
+
+```http
+GET /api/clientes
+```
+
+**Buscar clientes por nombre, apellido, documento o teléfono:**
+
+```http
+GET /api/clientes?buscar=carlos
+```
+
+**Consultar únicamente clientes activos:**
+
+```http
+GET /api/clientes?activo=1
+```
+
+**Consultar únicamente clientes inactivos:**
+
+```http
+GET /api/clientes?activo=0
+```
+
+**Consultar clientes con membresías por vencer:**
+
+```http
+GET /api/clientes?estado_membresia=por_vencer
+```
+
+**Combinar búsqueda y estado del cliente:**
+
+```http
+GET /api/clientes?buscar=carlos&activo=1
+```
+
+**Combinar estado del cliente y estado de membresía:**
+
+```http
+GET /api/clientes?activo=1&estado_membresia=activa
+```
+
+**Consultar la segunda página de resultados:**
+
+```http
+GET /api/clientes?page=2
+```
+
+#### Proceso de consulta
+
+El proceso sigue este orden:
+
+1. El usuario administrativo accede a la funcionalidad de consulta de clientes.
+2. El frontend envía una solicitud `GET /api/clientes`, incluyendo opcionalmente los parámetros de búsqueda, filtros y paginación.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario continúe activa.
+5. `ConsultarClientesRequest` autoriza la operación y valida los parámetros recibidos.
+6. `ClienteController` obtiene los parámetros previamente validados.
+7. El controlador ejecuta la acción `ConsultarClientes`.
+8. La acción construye la consulta y carga la relación `ultimaMembresiaAdquirida`.
+9. Se aplican los filtros y criterios de búsqueda proporcionados.
+10. Los resultados se ordenan alfabéticamente por nombres y apellidos.
+11. La consulta devuelve los registros paginados de cinco en cinco, conservando los parámetros mediante `withQueryString()`.
+12. `ClienteResource::collection()` transforma los registros y conserva la información de paginación.
+13. El backend devuelve HTTP `200 OK` con los resultados y los metadatos de paginación.
+
+#### Clasificación del estado de membresía
+
+El estado de membresía se calcula a partir de la fecha de vencimiento de la última membresía adquirida del cliente.
+
+| Estado | Condición |
+|---|---|
+| `activa` | La fecha de vencimiento es posterior a los próximos diez días. |
+| `por_vencer` | La fecha de vencimiento se encuentra entre hoy y los próximos diez días, incluyendo ambos límites. |
+| `vencida` | La fecha de vencimiento es anterior al día actual. |
+| `sin_membresia` | El cliente no tiene membresías adquiridas. |
+
+La clasificación se realiza tomando como referencia la fecha actual del backend y comparando únicamente la fecha de vencimiento.
+
+El sistema siempre considera la última membresía adquirida, incluso cuando esta se encuentra vencida. No utiliza adquisiciones anteriores para determinar el estado actual del cliente.
+
+#### Respuesta exitosa
+
+La consulta devuelve una colección de clientes transformados mediante `ClienteResource`, junto con los enlaces y metadatos de paginación generados por Laravel.
+
+**Ejemplo de respuesta:**
+
+```json
+{
+    "data": [
+        {
+            "id_cliente": 1,
+            "nombres": "Carlos",
+            "apellidos": "Gomez",
+            "documento": "1234567890",
+            "telefono": "3001234567",
+            "activo": true,
+            "autorizacion_tratamiento": true,
+            "fecha_autorizacion": "2026-11-17 10:30:00",
+            "membresia": {
+                "id_membresia_adquirida": 1,
+                "id_cliente": 1,
+                "id_tipo_membresia": 1,
+                "id_usuario_registro": 1,
+                "nombre_tipo_snapshot": "Mensual",
+                "duracion_dias_snapshot": 30,
+                "fecha_inicio": "2026-11-17",
+                "fecha_vencimiento": "2026-12-16 23:59:59",
+                "valor_pagado": "80000.00",
+                "metodo_pago": "efectivo"
+            },
+            "estado_membresia": "activa"
+        }
+    ],
+    "links": {
+        "first": "http://localhost/api/clientes?page=1",
+        "last": "http://localhost/api/clientes?page=2",
+        "prev": null,
+        "next": "http://localhost/api/clientes?page=2"
+    },
+    "meta": {
+        "current_page": 1,
+        "from": 1,
+        "last_page": 2,
+        "links": [],
+        "path": "http://localhost/api/clientes",
+        "per_page": 5,
+        "to": 5,
+        "total": 7
+    }
+}
+```
+
+Los valores son ilustrativos.
+
+Cuando el cliente no tiene membresías adquiridas, el campo `membresia` devuelve `null` y `estado_membresia` devuelve `sin_membresia`.
+
+Cuando no existen resultados, la API devuelve HTTP `200 OK` con una colección vacía y los metadatos de paginación correspondientes.
+
+#### Respuestas de error
 
 | Código HTTP | Situación |
 |---|---|
 | `401 Unauthorized` | El usuario no está autenticado. |
 | `403 Forbidden` | La cuenta del usuario está desactivada o no tiene autorización para realizar la operación. |
-| `422 Unprocessable Entity` | Los datos principales del cliente incumplen las reglas de validación. |
-| `201 Created` | El cliente se registra correctamente, pero los datos de la membresía opcional son inválidos o su registro no pudo completarse. |
+| `422 Unprocessable Entity` | Uno o varios parámetros de búsqueda, filtrado o paginación incumplen las reglas de validación. |
 
 ## 5. Reglas de validación y seguridad
 
 ### Autorización por roles
 
-El registro de clientes está permitido a los usuarios con rol `dueno` y `empleado`.
+El registro y la consulta de clientes están permitidos a los usuarios con rol `dueno` y `empleado`.
 
-La autorización se comprueba mediante `RegistrarClienteRequest`.
+La autorización se comprueba mediante los respectivos Form Requests:
+
+- `RegistrarClienteRequest`.
+- `ConsultarClientesRequest`.
 
 ### Nombres y apellidos
 
@@ -390,6 +667,73 @@ Las validaciones contemplan:
 
 El identificador del cliente se obtiene directamente del registro creado y se incorpora desde el backend.
 
+### Validación de parámetros de consulta
+
+Los parámetros de consulta se validan mediante `ConsultarClientesRequest`.
+
+Las reglas contemplan:
+
+- `buscar`: debe ser de tipo texto y no superar los 100 caracteres.
+- `activo`: debe contener un valor booleano válido.
+- `estado_membresia`: debe corresponder a uno de los estados permitidos: `activa`, `por_vencer`, `vencida` o `sin_membresia`.
+- `page`: debe ser un número entero mayor o igual a 1.
+
+No se ejecutan consultas cuando los parámetros recibidos incumplen las reglas de validación.
+
+### Búsqueda de clientes
+
+La búsqueda se realiza mediante coincidencias parciales en los siguientes campos:
+
+- Nombres.
+- Apellidos.
+- Documento.
+- Teléfono.
+
+El término ingresado se aplica sobre estos campos mediante condiciones `LIKE`, agrupadas para que la búsqueda pueda combinarse correctamente con los demás filtros.
+
+### Filtro por estado del cliente
+
+El parámetro `activo` permite consultar clientes según su estado:
+
+- `1`: clientes activos.
+- `0`: clientes inactivos.
+
+La implementación utiliza `array_key_exists()` para identificar si el parámetro fue enviado, permitiendo aplicar correctamente el filtro incluso cuando su valor es `false` o `0`.
+
+### Filtro por estado de membresía
+
+El parámetro `estado_membresia` permite filtrar los clientes según el estado de su última adquisición.
+
+Los estados permitidos son:
+
+- `activa`.
+- `por_vencer`.
+- `vencida`.
+- `sin_membresia`.
+
+La consulta utiliza exclusivamente la relación `ultimaMembresiaAdquirida` para determinar el estado de la membresía.
+
+Los clientes sin adquisiciones se identifican mediante `whereDoesntHave('membresiasAdquiridas')`.
+
+### Clasificación de membresías
+
+La clasificación se realiza tomando como referencia la fecha actual del backend.
+
+- Una membresía se considera `activa` cuando vence después de los próximos diez días.
+- Se considera `por_vencer` cuando vence entre hoy y los próximos diez días, incluyendo ambos límites.
+- Se considera `vencida` cuando su fecha de vencimiento es anterior al día actual.
+- Se considera `sin_membresia` cuando el cliente no tiene adquisiciones registradas.
+
+La comparación se realiza sobre la fecha, sin considerar la hora del vencimiento.
+
+### Paginación
+
+Los resultados se devuelven mediante la paginación de Laravel, con un límite de cinco registros por página.
+
+Se utiliza `withQueryString()` para conservar los parámetros de búsqueda y filtrado en los enlaces de navegación.
+
+El parámetro `page` permite consultar una página específica y debe ser un entero mayor o igual a 1.
+
 ### Integridad de las operaciones
 
 La creación del cliente y el registro de la primera membresía no se ejecutan dentro de una única transacción que revierta ambas operaciones.
@@ -400,9 +744,9 @@ La acción `RegistrarMembresiaAdquirida` conserva su propia lógica transacciona
 
 ### Protección de rutas
 
-La operación está protegida mediante autenticación con Sanctum y verificación del estado de la cuenta administrativa.
+Las operaciones del módulo están protegidas mediante autenticación con Sanctum y verificación del estado de la cuenta administrativa.
 
-La autorización por rol se aplica en el backend mediante `RegistrarClienteRequest`.
+La autorización por rol se aplica en el backend mediante los respectivos Form Requests.
 
 El frontend no constituye el mecanismo de seguridad: las restricciones se aplican en el servidor.
 
@@ -414,17 +758,20 @@ La información se presenta mediante los campos definidos para el módulo, evita
 
 ## 6. Rutas API
 
-Las rutas relacionadas con el registro de clientes se encuentran en:
+Las rutas relacionadas con el módulo de clientes se encuentran en:
 
 `routes/api.php`
 
-Actualmente se encuentra implementada:
+Actualmente se encuentran implementadas:
 
 | Método | Endpoint | Nombre | Operación |
 |---|---|---|---|
 | POST | `/api/clientes` | `cliente.store` | Registrar un cliente y, opcionalmente, su primera membresía. |
+| GET | `/api/clientes` | `cliente.index` | Consultar clientes mediante búsqueda, filtros y paginación. |
 
-La ruta está protegida mediante `auth:sanctum` y `usuario.activo`. La autorización por rol se realiza mediante `RegistrarClienteRequest`, que permite el acceso a usuarios con rol `dueno` o `empleado`.
+Ambas rutas están protegidas mediante `auth:sanctum` y `usuario.activo`.
+
+La autorización por rol se realiza mediante los respectivos Form Requests, que permiten el acceso a usuarios con rol `dueno` o `empleado`.
 
 ## 7. Pruebas automatizadas
 
@@ -460,34 +807,114 @@ Se implementaron 23 pruebas mediante PHPUnit para verificar el comportamiento de
 22. Se registra el cliente aunque el método de pago de la membresía no sea válido.
 23. Se registra el cliente aunque los datos de la membresía no sean un arreglo.
 
-### Resultado de las pruebas
+### Pruebas de consulta de clientes
 
-Última ejecución individual registrada para el módulo:
+Archivo: `tests/Feature/Cliente/ConsultarClientesTest.php`
 
-```text
-Tests: 23 passed (184 assertions)
-```
+Se implementaron 30 pruebas mediante PHPUnit para verificar los permisos, la búsqueda, los filtros, la clasificación de membresías, la paginación y las combinaciones de parámetros de consulta.
 
-Las pruebas de registro de clientes se ejecutan mediante:
+**Escenarios comprobados:**
+
+**1. Consulta y permisos**
+
+- Un dueño puede consultar clientes.
+- Un empleado puede consultar clientes.
+- Un usuario no autenticado no puede consultar clientes.
+- Un usuario inactivo no puede consultar clientes.
+
+**2. Búsqueda de clientes**
+
+- Buscar clientes por nombres.
+- Buscar clientes por apellidos.
+- Buscar clientes por documento.
+- Buscar clientes por teléfono.
+- Realizar búsquedas mediante coincidencias parciales.
+- Consultar todos los clientes cuando no se proporciona un término de búsqueda.
+
+**3. Estado del cliente**
+
+- Consultar únicamente clientes activos.
+- Consultar únicamente clientes inactivos.
+
+**4. Estado de membresía**
+
+- Consultar clientes con membresías activas.
+- Consultar clientes con membresías por vencer.
+- Consultar clientes con membresías vencidas.
+- Consultar clientes sin membresías adquiridas.
+- Comprobar la clasificación del estado de membresía según la fecha de vencimiento.
+- Verificar los límites de vencimiento: día actual, diez días y once días.
+- Comprobar que se consulte el estado de la última membresía adquirida.
+
+**5. Paginación**
+
+- Comprobar que los clientes se paginen de cinco en cinco.
+- Consultar los registros correspondientes a la segunda página.
+- Verificar que los filtros aplicados se conserven en los enlaces de paginación.
+
+**6. Validación de parámetros**
+
+- Rechazar términos de búsqueda que no sean texto.
+- Rechazar términos de búsqueda que superen los 100 caracteres.
+- Rechazar valores inválidos para el estado del cliente.
+- Rechazar estados de membresía no permitidos.
+- Rechazar números de página menores que 1.
+
+**7. Combinación de filtros y casos adicionales**
+
+- Combinar búsqueda y estado del cliente.
+- Combinar estado del cliente y estado de membresía.
+- Comprobar que una búsqueda sin coincidencias devuelva una colección vacía.
+- Comprobar que la consulta funcione cuando no existen clientes registrados.
+
+### Ejecución de las pruebas
+
+Para ejecutar las pruebas de registro:
 
 ```bash
 herd php artisan test --filter=RegistrarClienteTest
 ```
 
-La suite completa del proyecto se ejecuta mediante:
+Para ejecutar las pruebas de consulta:
+
+```bash
+herd php artisan test --filter=ConsultarClientesTest
+```
+
+Para ejecutar todas las pruebas del proyecto:
 
 ```bash
 herd php artisan test
 ```
 
+### Resultado de las pruebas
+
+Último resultado individual registrado:
+
+**Registro de clientes:**
+
+```text
+Tests: 23 passed (184 assertions)
+```
+
+**Consulta de clientes:**
+
+```text
+Tests: 30 passed (141 assertions)
+```
+
 ## 8. Estado del módulo
 
-El módulo de gestión de clientes cuenta con el registro (RF7), implementado y validado mediante pruebas automatizadas.
+El módulo de gestión de clientes cuenta con las funcionalidades de registro (RF7) y consulta (RF8), implementadas y validadas mediante pruebas automatizadas.
 
-La funcionalidad permite registrar clientes con sus datos personales y de contacto, exigir la autorización para el tratamiento de datos personales y establecer automáticamente su estado inicial activo.
+La funcionalidad de registro permite crear clientes con sus datos personales y de contacto, exigir la autorización para el tratamiento de datos personales y establecer automáticamente su estado inicial activo.
 
 También permite registrar opcionalmente la primera membresía del cliente durante la misma solicitud, reutilizando las reglas de validación y la lógica de negocio del módulo de membresías adquiridas.
 
-La separación entre ambas operaciones garantiza que un error durante el registro de la membresía no impida conservar el cliente registrado.
+La funcionalidad de consulta permite obtener los clientes registrados mediante búsquedas parciales y filtros por estado del cliente y estado de la última membresía adquirida.
 
-El módulo se encuentra preparado para continuar con los siguientes requerimientos funcionales relacionados con la consulta y gestión de clientes.
+Además, proporciona la clasificación automática de las membresías según sus fechas de vencimiento y la paginación de cinco registros por página, conservando los filtros aplicados durante la navegación.
+
+Ambos requerimientos cuentan con pruebas automatizadas que verifican sus reglas de negocio, validaciones, permisos y respuestas de la API.
+
+El módulo se encuentra preparado para continuar con los siguientes requerimientos funcionales relacionados con la actualización y gestión de clientes.

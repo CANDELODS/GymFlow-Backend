@@ -48,6 +48,7 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 - [x] **RF5 -- Consultar usuarios administrativos:** consulta de cuentas administrativas, búsqueda por nombre de usuario mediante coincidencias parciales y paginación de cinco registros por página. Acceso restringido al rol Dueño.
 - [x] **RF6 -- Actualizar y gestionar estado de usuarios administrativos:** actualización parcial o simultánea del nombre de usuario, rol, contraseña y estado de activación mediante el endpoint de actualización. También permite activar y desactivar cuentas mediante un endpoint específico. Incluye protección del último dueño activo, restricción de auto-desactivación y control de acceso de cuentas inactivas.
 - [x] **RF7 -- Registrar cliente:** registro de clientes mediante sus datos personales y de contacto, validación de la autorización para el tratamiento de datos personales y asignación automática del estado activo. Permite registrar opcionalmente la primera membresía del cliente en la misma solicitud, reutilizando las reglas y la lógica de registro de membresías adquiridas. Si los datos de la membresía no son válidos, el cliente permanece registrado.
+- [x] **RF8 -- Consultar clientes:** consulta de clientes registrados para dueños y empleados, con búsqueda por nombres, apellidos, documento y teléfono mediante coincidencias parciales. Incluye filtros por estado del cliente y estado de la última membresía adquirida, clasificación automática de membresías según su fecha de vencimiento y paginación de cinco registros por página.
 - [x] **RF11 -- Registrar tipo de membresía:** registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
 - [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 - [x] **RF13 -- Actualizar y gestionar el estado de tipos de membresía:** actualización parcial o simultánea del nombre, duración, precio y estado; activación y desactivación mediante un endpoint específico. Acceso para dueños y empleados, con validación de datos y protección de cuentas inactivas.
@@ -55,7 +56,7 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 
 ### En desarrollo / pendientes
 
-- [ ] Consultar y gestionar clientes.
+- [ ] Actualizar y gestionar el estado de los clientes.
 - [ ] Registro y auditoría de modificaciones.
 - [ ] Dashboard y reportes administrativos.
 
@@ -146,7 +147,7 @@ La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](doc
 | [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
 | [Tipos de membresía](docs/modulos/tipos-membresia.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de gestión de tipos de membresía. |
 | [Membresías adquiridas](docs/modulos/membresias-adquiridas.md) | Implementación, componentes, reglas de negocio, validaciones y pruebas del módulo de registro de membresías adquiridas. |
-| [Clientes](docs/modulos/cliente.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de registro de clientes. |
+| [Clientes](docs/modulos/cliente.md) | Implementación, componentes, validaciones, autorización, registro, consulta, filtros y pruebas del módulo de clientes. |
 
 La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
 
@@ -225,7 +226,7 @@ herd php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 208 passed (994 assertions)
+Tests: 238 passed (1135 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -259,6 +260,16 @@ Las pruebas actuales incluyen:
 - Registro opcional de la primera membresía durante la creación del cliente.
 - Validación de los datos de membresía y conservación del cliente cuando la membresía no puede registrarse.
 - Protección del registro de clientes frente a usuarios no autenticados y cuentas inactivas.
+- Consulta de clientes por parte de dueños y empleados.
+- Protección de la consulta frente a usuarios no autenticados, cuentas inactivas y roles no autorizados.
+- Búsqueda de clientes por nombres, apellidos, documento y teléfono mediante coincidencias parciales.
+- Filtrado de clientes por estado activo o inactivo.
+- Filtrado por estado de la última membresía adquirida: activa, por vencer, vencida o sin membresía.
+- Clasificación automática del estado de membresía según la fecha de vencimiento, incluyendo los límites de diez días.
+- Consulta de la última membresía adquirida de cada cliente.
+- Paginación de cinco registros por página y conservación de filtros entre páginas.
+- Validación de parámetros de búsqueda, filtros y paginación.
+- Combinación de filtros y respuestas vacías cuando no existen clientes o coincidencias.
 - Registro de tipos de membresía para dueños y empleados.
 - Validación de datos, unicidad del nombre, longitud y precisión decimal de los tipos de membresía.
 - Protección del registro de tipos de membresía frente a usuarios no autenticados e inactivos.
@@ -295,6 +306,7 @@ Actualmente se han completado la implementación y validación de los siguientes
 - **RF5:** Consultar usuarios administrativos.
 - **RF6:** Actualizar y gestionar el estado de usuarios administrativos.
 - **RF7:** Registrar cliente.
+- **RF8:** Consultar clientes.
 - **RF11:** Registrar tipo de membresía.
 - **RF12:** Consultar tipos de membresía.
 - **RF13:** Actualizar y gestionar el estado de tipos de membresía.
