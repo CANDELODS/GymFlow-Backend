@@ -39,7 +39,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Enviamos la solicitud para consultar los clientes registrados.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que la consulta haya sido exitosa.
         $response->assertOk()
@@ -66,6 +66,7 @@ class ConsultarClientesTest extends TestCase
         // Comprobamos que solamente exista un cliente registrado.
         $this->assertDatabaseCount('cliente', 1);
     }
+
     public function test_empleado_puede_consultar_clientes_registrados(): void
     {
         // Creamos el usuario administrativo que realizará la consulta.
@@ -91,7 +92,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Enviamos la solicitud para consultar los clientes registrados.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que el empleado pueda consultar los clientes correctamente.
         $response->assertOk()
@@ -101,10 +102,11 @@ class ConsultarClientesTest extends TestCase
         // Comprobamos que el cliente permanezca registrado.
         $this->assertDatabaseCount('cliente', 1);
     }
+
     public function test_usuario_no_autenticado_no_puede_consultar_clientes(): void
     {
         // Enviamos la solicitud sin autenticar ningún usuario.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que el acceso sea rechazado por falta de autenticación.
         $response->assertUnauthorized();
@@ -113,6 +115,7 @@ class ConsultarClientesTest extends TestCase
         $this->assertDatabaseCount('cliente', 0);
         $this->assertDatabaseCount('membresia_adquirida', 0);
     }
+
     public function test_usuario_inactivo_no_puede_consultar_clientes(): void
     {
         // Creamos un usuario administrativo que se encuentra inactivo.
@@ -127,7 +130,7 @@ class ConsultarClientesTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Enviamos la solicitud para consultar los clientes.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que el acceso sea rechazado.
         $response->assertForbidden();
@@ -136,6 +139,7 @@ class ConsultarClientesTest extends TestCase
         $this->assertDatabaseCount('cliente', 0);
         $this->assertDatabaseCount('membresia_adquirida', 0);
     }
+
     public function test_se_pueden_buscar_clientes_por_nombres(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -170,7 +174,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos el cliente por su nombre.
-        $response = $this->getJson('/api/clientes?buscar=Carlos');
+        $response = $this->getJson(route('cliente.index', ['buscar' => 'Carlos']));
 
         // Comprobamos que únicamente se encuentre el cliente esperado.
         $response->assertOk()
@@ -178,6 +182,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.nombres', 'Carlos')
             ->assertJsonPath('data.0.documento', '1234567890');
     }
+
     public function test_se_pueden_buscar_clientes_por_apellidos(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -212,7 +217,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos el cliente por su apellido.
-        $response = $this->getJson('/api/clientes?buscar=Gomez');
+        $response = $this->getJson(route('cliente.index', ['buscar' => 'Gomez']));
 
         // Comprobamos que únicamente se encuentre el cliente esperado.
         $response->assertOk()
@@ -220,6 +225,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.apellidos', 'Gomez')
             ->assertJsonPath('data.0.documento', '1234567890');
     }
+
     public function test_se_pueden_buscar_clientes_por_documento(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -254,7 +260,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos el cliente por su documento.
-        $response = $this->getJson('/api/clientes?buscar=1234567890');
+        $response = $this->getJson(route('cliente.index', ['buscar' => '1234567890']));
 
         // Comprobamos que únicamente se encuentre el cliente esperado.
         $response->assertOk()
@@ -297,7 +303,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos el cliente por su teléfono.
-        $response = $this->getJson('/api/clientes?buscar=3001234567');
+        $response = $this->getJson(route('cliente.index', ['buscar' => '3001234567']));
 
         // Comprobamos que únicamente se encuentre el cliente esperado.
         $response->assertOk()
@@ -305,6 +311,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.telefono', '3001234567')
             ->assertJsonPath('data.0.nombres', 'Carlos');
     }
+
     public function test_la_busqueda_de_clientes_permite_coincidencias_parciales(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -329,13 +336,14 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos utilizando solamente una parte del nombre.
-        $response = $this->getJson('/api/clientes?buscar=arl');
+        $response = $this->getJson(route('cliente.index', ['buscar' => 'arl']));
 
         // Comprobamos que la búsqueda encuentre al cliente.
         $response->assertOk()
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.nombres', 'Carlos');
     }
+
     public function test_la_busqueda_de_clientes_no_devuelve_resultados_inexistentes(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -360,7 +368,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Buscamos un cliente que no se encuentra registrado.
-        $response = $this->getJson('/api/clientes?buscar=Juan');
+        $response = $this->getJson(route('cliente.index', ['buscar' => 'Juan']));
 
         // Comprobamos que la consulta sea exitosa, pero no devuelva resultados.
         $response->assertOk()
@@ -369,6 +377,7 @@ class ConsultarClientesTest extends TestCase
         // Verificamos que el cliente original permanezca registrado.
         $this->assertDatabaseCount('cliente', 1);
     }
+
     public function test_se_pueden_consultar_unicamente_clientes_activos(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -404,7 +413,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Consultamos únicamente los clientes activos.
-        $response = $this->getJson('/api/clientes?activo=1');
+        $response = $this->getJson(route('cliente.index', ['activo' => 1]));
 
         // Comprobamos que solamente se devuelva el cliente activo.
         $response->assertOk()
@@ -415,6 +424,7 @@ class ConsultarClientesTest extends TestCase
         // Verificamos que ambos clientes continúen registrados.
         $this->assertDatabaseCount('cliente', 2);
     }
+
     public function test_se_pueden_consultar_unicamente_clientes_inactivos(): void
     {
         // Creamos y autenticamos al dueño que realizará la consulta.
@@ -450,7 +460,7 @@ class ConsultarClientesTest extends TestCase
         ]);
 
         // Consultamos únicamente los clientes inactivos.
-        $response = $this->getJson('/api/clientes?activo=0');
+        $response = $this->getJson(route('cliente.index', ['activo' => 0]));
 
         // Comprobamos que solamente se devuelva el cliente inactivo.
         $response->assertOk()
@@ -461,6 +471,7 @@ class ConsultarClientesTest extends TestCase
         // Verificamos que ambos clientes continúen registrados.
         $this->assertDatabaseCount('cliente', 2);
     }
+
     /**
      * Crea y autentica un dueño para realizar las consultas.
      */
@@ -530,6 +541,7 @@ class ConsultarClientesTest extends TestCase
             'metodo_pago' => 'efectivo',
         ]);
     }
+
     public function test_se_pueden_consultar_clientes_con_membresias_activas(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -562,7 +574,9 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos únicamente los clientes con membresías activas.
-        $response = $this->getJson('/api/clientes?estado_membresia=activa');
+        $response = $this->getJson(route('cliente.index', [
+            'estado_membresia' => 'activa',
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente esperado.
         $response->assertOk()
@@ -570,6 +584,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.documento', '1234567801')
             ->assertJsonPath('data.0.estado_membresia', 'activa');
     }
+
     public function test_se_pueden_consultar_clientes_con_membresias_por_vencer(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -602,7 +617,9 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos únicamente los clientes con membresías por vencer.
-        $response = $this->getJson('/api/clientes?estado_membresia=por_vencer');
+        $response = $this->getJson(route('cliente.index', [
+            'estado_membresia' => 'por_vencer',
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente esperado.
         $response->assertOk()
@@ -610,6 +627,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.documento', '1234567803')
             ->assertJsonPath('data.0.estado_membresia', 'por_vencer');
     }
+
     public function test_se_pueden_consultar_clientes_con_membresias_vencidas(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -642,7 +660,9 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos únicamente los clientes con membresías vencidas.
-        $response = $this->getJson('/api/clientes?estado_membresia=vencida');
+        $response = $this->getJson(route('cliente.index', [
+            'estado_membresia' => 'vencida',
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente esperado.
         $response->assertOk()
@@ -650,6 +670,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.documento', '1234567805')
             ->assertJsonPath('data.0.estado_membresia', 'vencida');
     }
+
     public function test_se_pueden_consultar_clientes_sin_membresias(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -676,7 +697,9 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos únicamente los clientes sin membresías.
-        $response = $this->getJson('/api/clientes?estado_membresia=sin_membresia');
+        $response = $this->getJson(route('cliente.index', [
+            'estado_membresia' => 'sin_membresia',
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente sin adquisiciones.
         $response->assertOk()
@@ -685,6 +708,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.estado_membresia', 'sin_membresia')
             ->assertJsonPath('data.0.membresia', null);
     }
+
     public function test_el_estado_de_membresia_se_calcula_segun_la_fecha_de_vencimiento(): void
     {
         // Fijamos la fecha actual para comprobar los límites de clasificación.
@@ -734,7 +758,7 @@ class ConsultarClientesTest extends TestCase
         }
 
         // Consultamos todos los clientes.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que todos los clientes hayan sido devueltos.
         $response->assertOk()
@@ -748,6 +772,7 @@ class ConsultarClientesTest extends TestCase
             ]);
         }
     }
+
     public function test_se_consulta_el_estado_de_la_ultima_membresia_adquirida(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -779,7 +804,7 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos los clientes registrados.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que se devuelva la última adquisición.
         $response->assertOk()
@@ -793,6 +818,7 @@ class ConsultarClientesTest extends TestCase
         // Verificamos que las dos adquisiciones permanezcan registradas.
         $this->assertDatabaseCount('membresia_adquirida', 2);
     }
+
     public function test_los_clientes_se_paginan_de_cinco_en_cinco(): void
     {
         // Creamos y autenticamos al dueño.
@@ -804,7 +830,7 @@ class ConsultarClientesTest extends TestCase
         }
 
         // Consultamos los clientes registrados.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que la primera página contenga cinco clientes.
         $response->assertOk()
@@ -814,6 +840,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('meta.total', 7)
             ->assertJsonPath('meta.last_page', 2);
     }
+
     public function test_se_pueden_consultar_los_clientes_de_la_segunda_pagina(): void
     {
         // Creamos y autenticamos al dueño.
@@ -825,7 +852,7 @@ class ConsultarClientesTest extends TestCase
         }
 
         // Consultamos la segunda página.
-        $response = $this->getJson('/api/clientes?page=2');
+        $response = $this->getJson(route('cliente.index', ['page' => 2]));
 
         // Comprobamos que se devuelvan los dos clientes restantes.
         $response->assertOk()
@@ -835,6 +862,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('meta.total', 7)
             ->assertJsonPath('meta.last_page', 2);
     }
+
     public function test_la_paginacion_conserva_los_filtros_aplicados(): void
     {
         // Creamos y autenticamos al dueño.
@@ -846,9 +874,10 @@ class ConsultarClientesTest extends TestCase
         }
 
         // Consultamos la primera página aplicando los filtros.
-        $response = $this->getJson(
-            '/api/clientes?buscar=123456792&activo=1'
-        );
+        $response = $this->getJson(route('cliente.index', [
+            'buscar' => '123456792',
+            'activo' => 1,
+        ]));
 
         // Comprobamos que la consulta genere dos páginas.
         $response->assertOk()
@@ -865,18 +894,22 @@ class ConsultarClientesTest extends TestCase
         $this->assertStringContainsString('activo=1', $siguientePagina);
         $this->assertStringContainsString('page=2', $siguientePagina);
     }
+
     public function test_no_se_puede_buscar_clientes_con_un_termino_que_no_sea_texto(): void
     {
         // Creamos y autenticamos al dueño.
         $this->autenticarDueno('dueno.buscar.invalido');
 
         // Intentamos realizar una búsqueda con un arreglo.
-        $response = $this->getJson('/api/clientes?buscar[]=carlos');
+        $response = $this->getJson(route('cliente.index', [
+            'buscar' => ['carlos'],
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('buscar');
     }
+
     public function test_no_se_pueden_realizar_busquedas_con_mas_de_cien_caracteres(): void
     {
         // Creamos y autenticamos al dueño.
@@ -886,7 +919,7 @@ class ConsultarClientesTest extends TestCase
         $termino = str_repeat('a', 101);
 
         // Intentamos realizar la búsqueda.
-        $response = $this->getJson('/api/clientes?' . http_build_query([
+        $response = $this->getJson(route('cliente.index', [
             'buscar' => $termino,
         ]));
 
@@ -894,42 +927,50 @@ class ConsultarClientesTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('buscar');
     }
+
     public function test_no_se_puede_filtrar_por_un_estado_de_cliente_invalido(): void
     {
         // Creamos y autenticamos al dueño.
         $this->autenticarDueno('dueno.estado.cliente.invalido');
 
         // Intentamos filtrar utilizando un valor no booleano.
-        $response = $this->getJson('/api/clientes?activo=habilitado');
+        $response = $this->getJson(route('cliente.index', [
+            'activo' => 'habilitado',
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('activo');
     }
+
     public function test_no_se_puede_filtrar_por_un_estado_de_membresia_invalido(): void
     {
         // Creamos y autenticamos al dueño.
         $this->autenticarDueno('dueno.estado.membresia.invalido');
 
         // Intentamos filtrar utilizando un estado no permitido.
-        $response = $this->getJson('/api/clientes?estado_membresia=pendiente');
+        $response = $this->getJson(route('cliente.index', [
+            'estado_membresia' => 'pendiente',
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('estado_membresia');
     }
+
     public function test_no_se_puede_consultar_una_pagina_menor_que_uno(): void
     {
         // Creamos y autenticamos al dueño.
         $this->autenticarDueno('dueno.pagina.invalida');
 
         // Intentamos consultar una página con valor cero.
-        $response = $this->getJson('/api/clientes?page=0');
+        $response = $this->getJson(route('cliente.index', ['page' => 0]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors('page');
     }
+
     public function test_se_pueden_combinar_busqueda_y_estado_del_cliente(): void
     {
         // Creamos y autenticamos al dueño.
@@ -943,7 +984,10 @@ class ConsultarClientesTest extends TestCase
         $clienteInactivo->update(['activo' => false]);
 
         // Buscamos por documento y filtramos clientes activos.
-        $response = $this->getJson('/api/clientes?buscar=123456793&activo=1');
+        $response = $this->getJson(route('cliente.index', [
+            'buscar' => '123456793',
+            'activo' => 1,
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente activo.
         $response->assertOk()
@@ -951,6 +995,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.documento', '1234567931')
             ->assertJsonPath('data.0.activo', true);
     }
+
     public function test_se_pueden_combinar_estado_del_cliente_y_estado_de_membresia(): void
     {
         // Fijamos la fecha actual para controlar los vencimientos.
@@ -984,9 +1029,10 @@ class ConsultarClientesTest extends TestCase
         );
 
         // Consultamos clientes activos con membresías activas.
-        $response = $this->getJson(
-            '/api/clientes?activo=1&estado_membresia=activa'
-        );
+        $response = $this->getJson(route('cliente.index', [
+            'activo' => 1,
+            'estado_membresia' => 'activa',
+        ]));
 
         // Comprobamos que solamente se devuelva el cliente esperado.
         $response->assertOk()
@@ -995,6 +1041,7 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('data.0.activo', true)
             ->assertJsonPath('data.0.estado_membresia', 'activa');
     }
+
     public function test_una_busqueda_sin_resultados_devuelve_una_coleccion_vacia(): void
     {
         // Creamos y autenticamos al dueño.
@@ -1004,7 +1051,9 @@ class ConsultarClientesTest extends TestCase
         $this->crearCliente('1234567935');
 
         // Buscamos un documento que no existe.
-        $response = $this->getJson('/api/clientes?buscar=9999999999');
+        $response = $this->getJson(route('cliente.index', [
+            'buscar' => '9999999999',
+        ]));
 
         // Comprobamos que la respuesta no contenga clientes.
         $response->assertOk()
@@ -1012,13 +1061,14 @@ class ConsultarClientesTest extends TestCase
             ->assertJsonPath('meta.total', 0)
             ->assertJsonPath('meta.current_page', 1);
     }
+
     public function test_se_puede_consultar_cuando_no_existen_clientes_registrados(): void
     {
         // Creamos y autenticamos al dueño.
         $this->autenticarDueno('dueno.sin.clientes');
 
         // Consultamos sin registrar ningún cliente.
-        $response = $this->getJson('/api/clientes');
+        $response = $this->getJson(route('cliente.index'));
 
         // Comprobamos que se devuelva una colección vacía con paginación.
         $response->assertOk()

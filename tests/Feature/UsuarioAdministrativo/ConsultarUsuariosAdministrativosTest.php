@@ -40,7 +40,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos los usuarios administrativos.
-        $response = $this->getJson('/api/usuarios-administrativos');
+        $response = $this->getJson(route('usuarios-administrativos.index'));
 
         // Comprobamos que la consulta fue exitosa.
         $response->assertOk()
@@ -71,7 +71,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Intentamos consultar los usuarios administrativos.
-        $response = $this->getJson('/api/usuarios-administrativos');
+        $response = $this->getJson(route('usuarios-administrativos.index'));
 
         // Comprobamos que el acceso fue rechazado.
         $response->assertForbidden();
@@ -80,7 +80,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
     public function test_usuario_no_autenticado_no_puede_consultar_los_usuarios_administrativos(): void
     {
         // Intentamos consultar los usuarios administrativos sin autenticación.
-        $response = $this->getJson('/api/usuarios-administrativos');
+        $response = $this->getJson(route('usuarios-administrativos.index'));
 
         // Comprobamos que la solicitud fue rechazada por falta de autenticación.
         $response->assertUnauthorized();
@@ -129,7 +129,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos usuarios que contengan la palabra "cand".
-        $response = $this->getJson('/api/usuarios-administrativos?usuario=cand');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'usuario' => 'cand',
+        ]));
 
         // Comprobamos que la búsqueda fue exitosa y devolvió tres coincidencias.
         $response->assertOk()
@@ -166,7 +168,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos un nombre de usuario que no existe.
-        $response = $this->getJson('/api/usuarios-administrativos?usuario=inexistente');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'usuario' => 'inexistente',
+        ]));
 
         // Comprobamos que la consulta fue exitosa y no encontró coincidencias.
         $response->assertOk()
@@ -204,7 +208,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos la primera página.
-        $response = $this->getJson('/api/usuarios-administrativos');
+        $response = $this->getJson(route('usuarios-administrativos.index'));
 
         // Comprobamos que la primera página contiene cinco registros.
         $response->assertOk()
@@ -215,7 +219,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
             ->assertJsonPath('meta.last_page', 2);
 
         // Consultamos la segunda página.
-        $response = $this->getJson('/api/usuarios-administrativos?page=2');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'page' => 2,
+        ]));
 
         // Comprobamos que la segunda página contiene los tres registros restantes.
         $response->assertOk()
@@ -257,7 +263,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos la primera página aplicando el filtro.
-        $response = $this->getJson('/api/usuarios-administrativos?usuario=cand');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'usuario' => 'cand',
+        ]));
 
         // Comprobamos que la primera página contiene cinco coincidencias.
         $response->assertOk()
@@ -266,7 +274,10 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
             ->assertJsonPath('meta.current_page', 1);
 
         // Consultamos la segunda página conservando el filtro.
-        $response = $this->getJson('/api/usuarios-administrativos?usuario=cand&page=2');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'usuario' => 'cand',
+            'page' => 2,
+        ]));
 
         // Comprobamos que devuelve las dos coincidencias restantes.
         $response->assertOk()
@@ -292,7 +303,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos consultar una página con número cero.
-        $response = $this->getJson('/api/usuarios-administrativos?page=0');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'page' => 0,
+        ]));
 
         // Comprobamos que la validación rechace el número de página.
         $response->assertUnprocessable()
@@ -313,7 +326,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos consultar una página con un valor no entero.
-        $response = $this->getJson('/api/usuarios-administrativos?page=abc');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'page' => 'abc',
+        ]));
 
         // Comprobamos que la validación rechace el valor recibido.
         $response->assertUnprocessable()
@@ -334,7 +349,9 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos realizar una búsqueda enviando un arreglo como nombre de usuario.
-        $response = $this->getJson('/api/usuarios-administrativos?usuario[]=juan');
+        $response = $this->getJson(route('usuarios-administrativos.index', [
+            'usuario' => ['juan'],
+        ]));
 
         // Comprobamos que la validación rechace el valor recibido.
         $response->assertUnprocessable()
@@ -358,7 +375,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $usuario = str_repeat('a', 101);
 
         // Intentamos realizar una búsqueda con el nombre demasiado largo.
-        $response = $this->getJson('/api/usuarios-administrativos?' . http_build_query([
+        $response = $this->getJson(route('usuarios-administrativos.index', [
             'usuario' => $usuario,
         ]));
 
@@ -389,7 +406,7 @@ class ConsultarUsuariosAdministrativosTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos los usuarios administrativos.
-        $response = $this->getJson('/api/usuarios-administrativos');
+        $response = $this->getJson(route('usuarios-administrativos.index'));
 
         // Comprobamos que la respuesta no exponga información sensible.
         $response->assertOk()

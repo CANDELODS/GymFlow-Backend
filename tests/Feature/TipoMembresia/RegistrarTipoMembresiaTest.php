@@ -25,7 +25,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos la solicitud para registrar el tipo de membresía.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Mensual',
             'duracion_dias' => 30,
             'precio' => 80000,
@@ -61,7 +61,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Enviamos la solicitud para registrar el tipo de membresía.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Trimestral',
             'duracion_dias' => 90,
             'precio' => 210000,
@@ -86,7 +86,7 @@ class RegistrarTipoMembresiaTest extends TestCase
     public function test_usuario_no_autenticado_no_puede_registrar_un_tipo_de_membresia(): void
     {
         // Intentamos registrar un tipo de membresía sin haber iniciado sesión.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Semestral',
             'duracion_dias' => 180,
             'precio' => 350000,
@@ -114,7 +114,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Intentamos registrar un tipo de membresía.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Semestral',
             'duracion_dias' => 180,
             'precio' => 350000,
@@ -145,7 +145,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos una solicitud sin datos.
-        $response = $this->postJson('/api/tipos-membresia', []);
+        $response = $this->postJson(route('tipos-membresia.store'), []);
 
         // Comprobamos que la validación rechaza los campos obligatorios.
         $response->assertUnprocessable()
@@ -193,7 +193,7 @@ class RegistrarTipoMembresiaTest extends TestCase
 
         // Intentamos registrar tipos de membresía con valores inválidos.
         foreach ($datosInvalidos as $datos) {
-            $response = $this->postJson('/api/tipos-membresia', $datos);
+            $response = $this->postJson(route('tipos-membresia.store'), $datos);
 
             // Comprobamos que se rechacen los valores iguales o inferiores a cero.
             $response->assertUnprocessable();
@@ -244,7 +244,7 @@ class RegistrarTipoMembresiaTest extends TestCase
 
         // Intentamos registrar tipos de membresía con datos inválidos.
         foreach ($datosInvalidos as $datos) {
-            $response = $this->postJson('/api/tipos-membresia', $datos);
+            $response = $this->postJson(route('tipos-membresia.store'), $datos);
 
             // Comprobamos que la validación rechaza los tipos de datos incorrectos.
             $response->assertUnprocessable();
@@ -287,7 +287,7 @@ class RegistrarTipoMembresiaTest extends TestCase
 
         // Intentamos registrar tipos de membresía con precios inválidos.
         foreach ($preciosInvalidos as $indice => $precio) {
-            $response = $this->postJson('/api/tipos-membresia', [
+            $response = $this->postJson(route('tipos-membresia.store'), [
                 'nombre' => "Membresia{$indice}",
                 'duracion_dias' => 30,
                 'precio' => $precio,
@@ -323,7 +323,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar otro tipo de membresía con el mismo nombre.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Mensual',
             'duracion_dias' => 60,
             'precio' => 150000,
@@ -358,7 +358,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar otro tipo con el mismo nombre en minúsculas.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'mensual',
             'duracion_dias' => 60,
             'precio' => 150000,
@@ -388,7 +388,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $nombreInvalido = str_repeat('a', 101);
 
         // Intentamos registrar un tipo de membresía con un nombre demasiado largo.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => $nombreInvalido,
             'duracion_dias' => 30,
             'precio' => 80000,
@@ -418,7 +418,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $nombre = str_repeat('a', 100);
 
         // Intentamos registrar el tipo de membresía.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => $nombre,
             'duracion_dias' => 30,
             'precio' => 80000,
@@ -450,7 +450,7 @@ class RegistrarTipoMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos la solicitud con un precio de dos decimales.
-        $response = $this->postJson('/api/tipos-membresia', [
+        $response = $this->postJson(route('tipos-membresia.store'), [
             'nombre' => 'Mensual Premium',
             'duracion_dias' => 30,
             'precio' => 85000.50,

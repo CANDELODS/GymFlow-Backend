@@ -12,7 +12,7 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
 
     Route::get('/user', function (Request $request) {
         return $request->user();
-    });
+    })->name('user.show');
 
     // RF3: Cambio de contraseña del usuario autenticado.
     Route::put('/usuario/contrasena', [

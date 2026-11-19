@@ -27,7 +27,7 @@ class VerificarUsuarioActivoTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Intentamos acceder a la ruta protegida.
-        $response = $this->getJson('/api/user');
+        $response = $this->getJson(route('user.show'));
 
         // Verificamos que el acceso sea permitido.
         $response->assertOk();
@@ -56,7 +56,7 @@ class VerificarUsuarioActivoTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Intentamos acceder a la ruta protegida.
-        $response = $this->getJson('/api/user');
+        $response = $this->getJson(route('user.show'));
 
         // Verificamos que el acceso sea rechazado.
         $response->assertForbidden();
@@ -96,7 +96,7 @@ class VerificarUsuarioActivoTest extends TestCase
         $empleado->refresh();
 
         // El empleado intenta acceder nuevamente a una ruta protegida.
-        $response = $this->getJson('/api/user');
+        $response = $this->getJson(route('user.show'));
 
         // Verificamos que el middleware rechace el acceso.
         $response->assertForbidden();

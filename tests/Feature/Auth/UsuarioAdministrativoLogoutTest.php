@@ -9,13 +9,13 @@ use Tests\TestCase;
 
 class UsuarioAdministrativoLogoutTest extends TestCase
 {
-    // Laravel preparará la BD de testing para cada prueba y revertirá los cambios al terminar
+    // Laravel preparará la BD de testing para cada prueba y revertirá los cambios al terminar.
     use RefreshDatabase;
 
-    //Comprobamos que un usuario autenticado pueda cerrar sesión correctamente
+    // Comprobamos que un usuario autenticado pueda cerrar sesión correctamente.
     public function test_usuario_autenticado_puede_cerrar_sesion(): void
     {
-        // Creamos un usuario administrativo para la prueba
+        // Creamos un usuario administrativo para la prueba.
         $usuario = UsuarioAdministrativo::create([
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
@@ -25,23 +25,23 @@ class UsuarioAdministrativoLogoutTest extends TestCase
             'bloqueado_hasta' => null,
         ]);
 
-        // Autenticamos al usuario mediante el guard web
+        // Autenticamos al usuario mediante el guard web.
         $this->actingAs($usuario, 'web');
 
-        // Enviamos la solicitud de cierre de sesión
-        $respuesta = $this->postJson('/logout');
+        // Enviamos la solicitud de cierre de sesión.
+        $respuesta = $this->postJson(route('logout'));
 
-        // Comprobamos que Laravel responda correctamente
+        // Comprobamos que Laravel responda correctamente.
         $respuesta->assertNoContent();
 
-        // Verificamos que el usuario ya no esté autenticado
+        // Verificamos que el usuario ya no esté autenticado.
         $this->assertGuest('web');
     }
 
-    // Comprobamos que un usuario no pueda acceder a rutas protegidas después de cerrar sesión
+    // Comprobamos que un usuario no pueda acceder a rutas protegidas después de cerrar sesión.
     public function test_usuario_no_puede_acceder_a_rutas_protegidas_despues_de_cerrar_sesion(): void
     {
-        // Creamos un usuario administrativo para la prueba
+        // Creamos un usuario administrativo para la prueba.
         $usuario = UsuarioAdministrativo::create([
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
@@ -51,39 +51,39 @@ class UsuarioAdministrativoLogoutTest extends TestCase
             'bloqueado_hasta' => null,
         ]);
 
-        // Autenticamos al usuario mediante el guard web
+        // Autenticamos al usuario mediante el guard web.
         $this->actingAs($usuario, 'web');
 
-        // Cerramos la sesión del usuario
-        $this->postJson('/logout')->assertNoContent();
+        // Cerramos la sesión del usuario.
+        $this->postJson(route('logout'))->assertNoContent();
 
-        // Intentamos acceder a una ruta protegida después del cierre de sesión
-        $respuesta = $this->getJson('/api/user');
+        // Intentamos acceder a una ruta protegida después del cierre de sesión.
+        $respuesta = $this->getJson(route('user.show'));
 
-        // Comprobamos que Laravel rechace el acceso por falta de autenticación
+        // Comprobamos que Laravel rechace el acceso por falta de autenticación.
         $respuesta->assertUnauthorized();
 
-        // Verificamos que el usuario continúe sin estar autenticado
+        // Verificamos que el usuario continúe sin estar autenticado.
         $this->assertGuest('web');
     }
 
-    // Comprobamos que un usuario no autenticado no pueda ejecutar el cierre de sesión
+    // Comprobamos que un usuario no autenticado no pueda ejecutar el cierre de sesión.
     public function test_usuario_no_autenticado_no_puede_ejecutar_el_cierre_de_sesion(): void
     {
-        // Enviamos una solicitud de cierre de sesión sin autenticación previa
-        $respuesta = $this->postJson('/logout');
+        // Enviamos una solicitud de cierre de sesión sin autenticación previa.
+        $respuesta = $this->postJson(route('logout'));
 
-        // Comprobamos que Laravel rechace la solicitud por falta de autenticación
+        // Comprobamos que Laravel rechace la solicitud por falta de autenticación.
         $respuesta->assertUnauthorized();
 
-        // Verificamos que el usuario continúe sin estar autenticado
+        // Verificamos que el usuario continúe sin estar autenticado.
         $this->assertGuest('web');
     }
 
-    // Comprobamos que el cierre de sesión invalide el identificador de sesión anterior
+    // Comprobamos que el cierre de sesión invalide el identificador de sesión anterior.
     public function test_cerrar_sesion_invalida_el_identificador_de_sesion_anterior(): void
     {
-        // Creamos un usuario administrativo para la prueba
+        // Creamos un usuario administrativo para la prueba.
         $usuario = UsuarioAdministrativo::create([
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
@@ -93,22 +93,22 @@ class UsuarioAdministrativoLogoutTest extends TestCase
             'bloqueado_hasta' => null,
         ]);
 
-        // Autenticamos al usuario mediante el guard web
+        // Autenticamos al usuario mediante el guard web.
         $this->actingAs($usuario, 'web');
 
-        // Recuperamos el identificador de la sesión antes del cierre
+        // Recuperamos el identificador de la sesión antes del cierre.
         $identificadorAnterior = session()->getId();
 
-        // Enviamos la solicitud de cierre de sesión
-        $this->postJson('/logout')->assertNoContent();
+        // Enviamos la solicitud de cierre de sesión.
+        $this->postJson(route('logout'))->assertNoContent();
 
-        // Recuperamos el identificador de la sesión después del cierre
+        // Recuperamos el identificador de la sesión después del cierre.
         $identificadorActual = session()->getId();
 
-        // Comprobamos que el identificador de sesión haya cambiado
+        // Comprobamos que el identificador de sesión haya cambiado.
         $this->assertNotSame($identificadorAnterior, $identificadorActual);
 
-        // Verificamos que el usuario ya no esté autenticado
+        // Verificamos que el usuario ya no esté autenticado.
         $this->assertGuest('web');
     }
 }

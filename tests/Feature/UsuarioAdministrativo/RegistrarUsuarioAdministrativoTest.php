@@ -24,7 +24,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos la solicitud para registrar un empleado.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',
@@ -69,7 +69,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos la solicitud para registrar otro dueño.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'nuevo.dueno',
             'password' => 'NuevoDueno*123',
             'password_confirmation' => 'NuevoDueno*123',
@@ -104,7 +104,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Intentamos registrar otro usuario administrativo.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'nuevo.usuario',
             'password' => 'NuevoUsuario*123',
             'password_confirmation' => 'NuevoUsuario*123',
@@ -124,7 +124,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
     public function test_usuario_no_autenticado_no_puede_registrar_usuarios_administrativos(): void
     {
         // Intentamos registrar un usuario sin haber iniciado sesión.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'nuevo.usuario',
             'password' => 'NuevoUsuario*123',
             'password_confirmation' => 'NuevoUsuario*123',
@@ -164,7 +164,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar otro usuario con el mismo nombre.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'NuevoUsuario*123',
             'password_confirmation' => 'NuevoUsuario*123',
@@ -202,7 +202,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
 
         // Intentamos registrar un usuario con cada contraseña inválida.
         foreach ($contrasenasInvalidas as $indice => $contrasena) {
-            $response = $this->postJson('/api/usuarios-administrativos', [
+            $response = $this->postJson(route('usuarios-administrativos.store'), [
                 'usuario' => "empleado{$indice}.test",
                 'password' => $contrasena,
                 'password_confirmation' => $contrasena,
@@ -233,7 +233,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar un usuario con contraseñas diferentes.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'OtraPassword*123',
@@ -265,7 +265,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar un usuario con un rol inexistente.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',
@@ -297,7 +297,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar un usuario con un estado no válido.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',
@@ -329,7 +329,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos una solicitud sin datos.
-        $response = $this->postJson('/api/usuarios-administrativos', []);
+        $response = $this->postJson(route('usuarios-administrativos.store'), []);
 
         // Comprobamos que la validación rechaza los campos obligatorios.
         $response->assertUnprocessable()
@@ -366,7 +366,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
 
         // Intentamos registrar usuarios con nombres inválidos.
         foreach ($usuariosInvalidos as $usuario) {
-            $response = $this->postJson('/api/usuarios-administrativos', [
+            $response = $this->postJson(route('usuarios-administrativos.store'), [
                 'usuario' => $usuario,
                 'password' => 'Empleado*123',
                 'password_confirmation' => 'Empleado*123',
@@ -397,7 +397,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Registramos un nuevo usuario administrativo.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',
@@ -428,7 +428,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Registramos un usuario con la cuenta desactivada.
-        $response = $this->postJson('/api/usuarios-administrativos', [
+        $response = $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.inactivo',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',
@@ -462,7 +462,7 @@ class RegistrarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Registramos un nuevo usuario administrativo.
-        $this->postJson('/api/usuarios-administrativos', [
+        $this->postJson(route('usuarios-administrativos.store'), [
             'usuario' => 'empleado.test',
             'password' => 'Empleado*123',
             'password_confirmation' => 'Empleado*123',

@@ -37,7 +37,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
 
         // Enviamos la solicitud para actualizar el usuario.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado_actualizado',
                 'rol' => 'empleado',
@@ -78,7 +78,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado123',
                 'rol' => 'dueno',
@@ -118,7 +118,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$otroDueno->id_usuario}",
+            route('usuarios-administrativos.update', $otroDueno->id_usuario),
             [
                 'usuario' => 'dueno456',
                 'rol' => 'empleado',
@@ -150,7 +150,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$dueno->id_usuario}",
+            route('usuarios-administrativos.update', $dueno->id_usuario),
             [
                 'usuario' => 'dueno123',
                 'rol' => 'empleado',
@@ -195,7 +195,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
 
         // Intentamos cambiar nuestro propio rol a empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$dueno->id_usuario}",
+            route('usuarios-administrativos.update', $dueno->id_usuario),
             [
                 'usuario' => 'dueno123',
                 'rol' => 'empleado',
@@ -235,7 +235,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado123',
                 'rol' => 'empleado',
@@ -283,7 +283,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado_actualizado',
                 'rol' => 'empleado',
@@ -328,7 +328,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         foreach ($contrasenasInvalidas as $descripcion => $contrasena) {
 
             $response = $this->patchJson(
-                "/api/usuarios-administrativos/{$empleado->id_usuario}",
+                route('usuarios-administrativos.update', $empleado->id_usuario),
                 [
                     'usuario' => 'empleado123',
                     'rol' => 'empleado',
@@ -372,7 +372,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado456',
                 'rol' => 'empleado',
@@ -415,7 +415,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
 
         // Intentamos actualizar la información de otro usuario.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$otroEmpleado->id_usuario}",
+            route('usuarios-administrativos.update', $otroEmpleado->id_usuario),
             [
                 'usuario' => 'empleado_actualizado',
                 'rol' => 'empleado',
@@ -450,7 +450,7 @@ class ActualizarUsuarioAdministrativoTest extends TestCase
 
         // Intentamos actualizar la información del empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}",
+            route('usuarios-administrativos.update', $empleado->id_usuario),
             [
                 'usuario' => 'empleado_actualizado',
                 'rol' => 'empleado',

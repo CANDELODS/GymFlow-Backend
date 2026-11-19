@@ -47,7 +47,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos los tipos de membresía.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que la consulta fue exitosa.
         $response->assertOk()
@@ -71,6 +71,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'activo' => false,
             ]);
     }
+
     public function test_empleado_puede_consultar_los_tipos_de_membresia(): void
     {
         // Creamos el usuario administrativo con rol de empleado.
@@ -93,7 +94,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Consultamos los tipos de membresía.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que la consulta fue exitosa.
         $response->assertOk()
@@ -105,14 +106,16 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'activo' => true,
             ]);
     }
+
     public function test_usuario_no_autenticado_no_puede_consultar_los_tipos_de_membresia(): void
     {
         // Intentamos consultar los tipos de membresía sin autenticación.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que la solicitud fue rechazada por falta de autenticación.
         $response->assertUnauthorized();
     }
+
     public function test_usuario_inactivo_no_puede_consultar_los_tipos_de_membresia(): void
     {
         // Creamos un usuario administrativo con la cuenta inactiva.
@@ -127,7 +130,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Intentamos consultar los tipos de membresía.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que el acceso fue rechazado.
         $response->assertForbidden();
@@ -135,6 +138,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         // Comprobamos que la sesión haya sido cerrada.
         $this->assertGuest('web');
     }
+
     public function test_dueno_puede_buscar_tipos_de_membresia_por_coincidencias_parciales(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -178,7 +182,9 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos tipos de membresía que contengan la palabra "mens".
-        $response = $this->getJson('/api/tipos-membresia?nombre=mens');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => 'mens',
+        ]));
 
         // Comprobamos que la búsqueda fue exitosa y devolvió tres coincidencias.
         $response->assertOk()
@@ -192,6 +198,7 @@ class ConsultarTiposMembresiaTest extends TestCase
             'nombre' => 'Trimestral',
         ]);
     }
+
     public function test_la_busqueda_sin_coincidencias_devuelve_una_coleccion_vacia(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -214,7 +221,9 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos un tipo de membresía que no existe.
-        $response = $this->getJson('/api/tipos-membresia?nombre=inexistente');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => 'inexistente',
+        ]));
 
         // Comprobamos que la consulta fue exitosa y no encontró coincidencias.
         $response->assertOk()
@@ -227,6 +236,7 @@ class ConsultarTiposMembresiaTest extends TestCase
             ->assertJsonPath('meta.total', 0)
             ->assertJsonPath('meta.last_page', 1);
     }
+
     public function test_dueno_puede_filtrar_los_tipos_de_membresia_activos(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -256,7 +266,9 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos únicamente los tipos de membresía activos.
-        $response = $this->getJson('/api/tipos-membresia?activo=1');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'activo' => 1,
+        ]));
 
         // Comprobamos que solo se devuelvan los tipos activos.
         $response->assertOk()
@@ -269,6 +281,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'nombre' => 'Semestral',
             ]);
     }
+
     public function test_dueno_puede_filtrar_los_tipos_de_membresia_inactivos(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -298,7 +311,9 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos únicamente los tipos de membresía inactivos.
-        $response = $this->getJson('/api/tipos-membresia?activo=0');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'activo' => 0,
+        ]));
 
         // Comprobamos que solo se devuelvan los tipos inactivos.
         $response->assertOk()
@@ -311,6 +326,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'nombre' => 'Mensual',
             ]);
     }
+
     public function test_dueno_puede_combinar_la_busqueda_por_nombre_y_el_filtro_por_estado(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -348,7 +364,10 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos tipos que contengan "mens" y estén inactivos.
-        $response = $this->getJson('/api/tipos-membresia?nombre=mens&activo=0');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => 'mens',
+            'activo' => 0,
+        ]));
 
         // Comprobamos que únicamente se devuelva el registro que cumple ambos filtros.
         $response->assertOk()
@@ -364,6 +383,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'nombre' => 'Trimestral',
             ]);
     }
+
     public function test_los_tipos_de_membresia_se_paginan_de_cinco_en_cinco(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -388,7 +408,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos la primera página.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que la primera página contenga cinco registros.
         $response->assertOk()
@@ -399,7 +419,9 @@ class ConsultarTiposMembresiaTest extends TestCase
             ->assertJsonPath('meta.last_page', 2);
 
         // Consultamos la segunda página.
-        $response = $this->getJson('/api/tipos-membresia?page=2');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'page' => 2,
+        ]));
 
         // Comprobamos que la segunda página contenga los dos registros restantes.
         $response->assertOk()
@@ -409,6 +431,7 @@ class ConsultarTiposMembresiaTest extends TestCase
             ->assertJsonPath('meta.total', 7)
             ->assertJsonPath('meta.last_page', 2);
     }
+
     public function test_los_filtros_se_conservan_al_cambiar_de_pagina(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -441,7 +464,10 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos la primera página aplicando ambos filtros.
-        $response = $this->getJson('/api/tipos-membresia?nombre=mens&activo=0');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => 'mens',
+            'activo' => 0,
+        ]));
 
         // Comprobamos que la primera página tenga cinco resultados.
         $response->assertOk()
@@ -453,7 +479,11 @@ class ConsultarTiposMembresiaTest extends TestCase
             ]);
 
         // Consultamos la segunda página conservando los filtros.
-        $response = $this->getJson('/api/tipos-membresia?nombre=mens&activo=0&page=2');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => 'mens',
+            'activo' => 0,
+            'page' => 2,
+        ]));
 
         // Comprobamos que solo aparezcan los dos registros restantes.
         $response->assertOk()
@@ -464,6 +494,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'nombre' => 'Trimestral',
             ]);
     }
+
     public function test_no_se_puede_consultar_una_pagina_menor_a_uno(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -478,12 +509,15 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos consultar una página con valor cero.
-        $response = $this->getJson('/api/tipos-membresia?page=0');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'page' => 0,
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['page']);
     }
+
     public function test_no_se_puede_consultar_una_pagina_con_un_valor_no_numerico(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -498,12 +532,15 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos consultar una página con un valor no numérico.
-        $response = $this->getJson('/api/tipos-membresia?page=abc');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'page' => 'abc',
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['page']);
     }
+
     public function test_no_se_puede_buscar_por_nombre_con_un_valor_que_no_sea_texto(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -518,12 +555,15 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos buscar utilizando un arreglo en lugar de un texto.
-        $response = $this->getJson('/api/tipos-membresia?nombre[]=mens');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'nombre' => ['mens'],
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['nombre']);
     }
+
     public function test_no_se_puede_buscar_por_nombre_con_mas_de_cien_caracteres(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -541,7 +581,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos buscar utilizando un nombre que supera el límite permitido.
-        $response = $this->getJson('/api/tipos-membresia?' . http_build_query([
+        $response = $this->getJson(route('tipos-membresia.index', [
             'nombre' => $nombre,
         ]));
 
@@ -549,6 +589,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['nombre']);
     }
+
     public function test_se_puede_buscar_por_nombre_con_exactamente_cien_caracteres(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -574,7 +615,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Buscamos utilizando el nombre de 100 caracteres.
-        $response = $this->getJson('/api/tipos-membresia?' . http_build_query([
+        $response = $this->getJson(route('tipos-membresia.index', [
             'nombre' => $nombre,
         ]));
 
@@ -585,6 +626,7 @@ class ConsultarTiposMembresiaTest extends TestCase
                 'nombre' => $nombre,
             ]);
     }
+
     public function test_no_se_puede_filtrar_por_estado_con_un_valor_no_booleano(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -599,12 +641,15 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos filtrar utilizando un valor no booleano.
-        $response = $this->getJson('/api/tipos-membresia?activo=abc');
+        $response = $this->getJson(route('tipos-membresia.index', [
+            'activo' => 'abc',
+        ]));
 
         // Comprobamos que la validación rechace el parámetro.
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['activo']);
     }
+
     public function test_se_devuelve_una_coleccion_vacia_cuando_no_existen_tipos_de_membresia(): void
     {
         // Creamos el dueño que realizará la consulta.
@@ -619,7 +664,7 @@ class ConsultarTiposMembresiaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Consultamos los tipos de membresía sin tener registros creados.
-        $response = $this->getJson('/api/tipos-membresia');
+        $response = $this->getJson(route('tipos-membresia.index'));
 
         // Comprobamos que la consulta sea exitosa y devuelva una colección vacía.
         $response->assertOk()

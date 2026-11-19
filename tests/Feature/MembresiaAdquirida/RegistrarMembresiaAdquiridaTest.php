@@ -60,7 +60,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
             ->format('Y-m-d H:i:s');
 
         // Enviamos la solicitud para registrar la membresía adquirida.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => $fechaInicio,
@@ -142,7 +142,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
             ->format('Y-m-d H:i:s');
 
         // Enviamos la solicitud para registrar la membresía adquirida.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => $fechaInicio,
@@ -179,7 +179,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
     public function test_usuario_no_autenticado_no_puede_registrar_una_membresia_adquirida(): void
     {
         // Enviamos la solicitud sin autenticar ningún usuario.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => 1,
             'id_tipo_membresia' => 1,
             'fecha_inicio' => now()->toDateString(),
@@ -208,7 +208,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($empleado, 'web');
 
         // Intentamos registrar una membresía adquirida.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => 1,
             'id_tipo_membresia' => 1,
             'fecha_inicio' => now()->toDateString(),
@@ -256,7 +256,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar una membresía para el cliente inactivo.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -305,7 +305,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar una membresía con el tipo inactivo.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -343,7 +343,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar una membresía con un cliente inexistente.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => 999999,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -384,7 +384,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Intentamos registrar una membresía con un tipo inexistente.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => 999999,
             'fecha_inicio' => now()->toDateString(),
@@ -439,7 +439,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $fechaFutura = now()->addDay()->toDateString();
 
         // Intentamos registrar una membresía con fecha de inicio futura.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => $fechaFutura,
@@ -483,7 +483,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => '15-11-2026',
@@ -525,7 +525,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'valor_pagado' => 75000,
@@ -566,7 +566,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -608,7 +608,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -650,7 +650,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -692,7 +692,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -733,7 +733,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -775,7 +775,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -799,7 +799,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', []);
+        $response = $this->postJson(route('membresias-adquiridas.store'), []);
 
         $response->assertUnprocessable()
             ->assertJsonValidationErrors([
@@ -841,7 +841,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -910,7 +910,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         ];
 
         // Verificamos que Bancolombia sea aceptado.
-        $responseBancolombia = $this->postJson('/api/membresias-adquiridas', [
+        $responseBancolombia = $this->postJson(route('membresias-adquiridas.store'), [
             ...$datosBase,
             'metodo_pago' => 'bancolombia',
         ]);
@@ -918,7 +918,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $responseBancolombia->assertCreated();
 
         // Verificamos que Otro también sea aceptado.
-        $responseOtro = $this->postJson('/api/membresias-adquiridas', [
+        $responseOtro = $this->postJson(route('membresias-adquiridas.store'), [
             ...$datosBase,
             'metodo_pago' => 'otro',
         ]);
@@ -968,7 +968,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $fechaInicio = now()->toDateString();
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => $fechaInicio,
@@ -1018,7 +1018,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),
@@ -1069,7 +1069,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => '2026-11-20',
@@ -1122,7 +1122,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
 
         $this->actingAs($dueno, 'web');
 
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => '2026-12-15',
@@ -1177,7 +1177,7 @@ class RegistrarMembresiaAdquiridaTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Registramos una membresía adquirida.
-        $response = $this->postJson('/api/membresias-adquiridas', [
+        $response = $this->postJson(route('membresias-adquiridas.store'), [
             'id_cliente' => $cliente->id_cliente,
             'id_tipo_membresia' => $tipoMembresia->id_tipo_membresia,
             'fecha_inicio' => now()->toDateString(),

@@ -29,7 +29,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Enviamos la solicitud para cambiar la contraseña.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -63,7 +63,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Intentamos cambiar la contraseña utilizando una contraseña actual incorrecta.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'PasswordIncorrecta123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -99,7 +99,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Intentamos cambiar la contraseña utilizando una nueva que incumple RNF2.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'contraseña',
             'contrasena_nueva_confirmacion' => 'contraseña',
@@ -135,7 +135,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Intentamos cambiar la contraseña utilizando una confirmación diferente.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'OtraPassword123!',
@@ -158,7 +158,7 @@ class CambiarContrasenaTest extends TestCase
     public function test_usuario_no_autenticado_no_puede_cambiar_contrasena(): void
     {
         // Enviamos una solicitud para cambiar la contraseña sin iniciar sesión.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -184,7 +184,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Enviamos la solicitud para cambiar la contraseña.
-        $this->putJson('/api/usuario/contrasena', [
+        $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -218,7 +218,7 @@ class CambiarContrasenaTest extends TestCase
         $this->actingAs($usuario, 'web');
 
         // Cambiamos la contraseña del usuario.
-        $this->putJson('/api/usuario/contrasena', [
+        $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -231,7 +231,7 @@ class CambiarContrasenaTest extends TestCase
         Auth::shouldUse('web');
 
         // Intentamos iniciar sesión utilizando la contraseña anterior.
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -245,7 +245,7 @@ class CambiarContrasenaTest extends TestCase
         $this->assertGuest('web');
 
         // Intentamos iniciar sesión utilizando la nueva contraseña.
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'NuevaPassword123!',
         ]);
@@ -254,7 +254,6 @@ class CambiarContrasenaTest extends TestCase
         $respuesta->assertRedirect('/home');
         $this->assertAuthenticatedAs($usuario, 'web');
     }
-
 
     public function test_una_sesion_anterior_se_invalida_despues_de_cambiar_contrasena(): void
     {
@@ -280,7 +279,7 @@ class CambiarContrasenaTest extends TestCase
         ]);
 
         // Cambiamos la contraseña desde la sesión actual.
-        $respuesta = $this->putJson('/api/usuario/contrasena', [
+        $respuesta = $this->putJson(route('usuario.contrasena.update'), [
             'contrasena_actual' => 'Password123!',
             'contrasena_nueva' => 'NuevaPassword123!',
             'contrasena_nueva_confirmacion' => 'NuevaPassword123!',
@@ -298,7 +297,7 @@ class CambiarContrasenaTest extends TestCase
         // Simulamos una nueva solicitud desde una sesión que conserva el hash anterior.
         $this->actingAs($usuario->fresh(), 'web');
 
-        // withSession Nos permite establecer los datos que tendrá la sesión de la siguiente solicitud.
+        // withSession nos permite establecer los datos que tendrá la sesión de la siguiente solicitud.
         $this->withSession([
             'password_hash_web' => $hashAnterior,
         ]);
@@ -307,7 +306,7 @@ class CambiarContrasenaTest extends TestCase
         $respuesta = $this->withHeader(
             'Origin',
             'http://gymflow.test:8080'
-        )->getJson('/api/user');
+        )->getJson(route('user.show'));
 
         // Comprobamos que Laravel rechace la sesión por el cambio de hash.
         $respuesta->assertUnauthorized();

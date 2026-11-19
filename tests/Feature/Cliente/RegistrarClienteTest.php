@@ -26,7 +26,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Enviamos la solicitud para registrar un cliente.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Juan',
             'apellidos' => 'Perez',
             'documento' => '1234567890',
@@ -77,7 +77,7 @@ class RegistrarClienteTest extends TestCase
 
         $this->actingAs($empleado, 'web');
 
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '9876543210',
@@ -113,7 +113,7 @@ class RegistrarClienteTest extends TestCase
     }
     public function test_usuario_no_autenticado_no_puede_registrar_un_cliente(): void
     {
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -137,7 +137,7 @@ class RegistrarClienteTest extends TestCase
 
         $this->actingAs($usuario, 'web');
 
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -162,7 +162,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente sin proporcionar ningún dato.
-        $response = $this->postJson('/api/clientes', []);
+        $response = $this->postJson(route('cliente.store'), []);
 
         // Se verifica que la solicitud sea rechazada por errores de validación.
         $response->assertUnprocessable()
@@ -190,7 +190,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se envían datos que superan la longitud máxima permitida para cada campo.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => str_repeat('A', 101),
             'apellidos' => str_repeat('B', 101),
             'documento' => str_repeat('1', 31),
@@ -223,7 +223,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se envían arreglos en lugar de cadenas de texto en los campos correspondientes.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => ['Carlos'],
             'apellidos' => ['Gomez'],
             'documento' => ['1234567890'],
@@ -267,7 +267,7 @@ class RegistrarClienteTest extends TestCase
         ]);
 
         // Se intenta registrar otro cliente utilizando el mismo documento.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Andres',
             'apellidos' => 'Rodriguez',
             'documento' => '1234567890',
@@ -309,7 +309,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente sin aceptar el tratamiento de sus datos personales.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -340,7 +340,7 @@ class RegistrarClienteTest extends TestCase
 
         // Se intenta registrar un cliente enviando un valor no booleano
         // en el campo opcional registrar_membresia.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -379,7 +379,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se envían los datos del cliente y de su primera membresía en una sola solicitud.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -444,7 +444,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con datos de membresía incompletos.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -495,7 +495,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se envían los datos del cliente indicando que no se desea registrar una membresía.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -536,7 +536,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con un tipo de membresía inexistente.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -591,7 +591,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente utilizando el tipo de membresía inactivo.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -652,7 +652,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con una membresía cuya fecha de inicio es futura.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -707,7 +707,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con una fecha de inicio en formato incorrecto.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -762,7 +762,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con una membresía cuyo valor pagado es cero.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -817,7 +817,7 @@ class RegistrarClienteTest extends TestCase
         ]);
 
         // Se intenta registrar un cliente enviando un identificador no entero.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -868,7 +868,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con un valor pagado negativo.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -919,7 +919,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con un valor pagado no numérico.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -970,7 +970,7 @@ class RegistrarClienteTest extends TestCase
         $this->actingAs($dueno, 'web');
 
         // Se intenta registrar un cliente con un método de pago no permitido.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',
@@ -1014,7 +1014,7 @@ class RegistrarClienteTest extends TestCase
 
         // Se intenta registrar un cliente enviando una cadena en lugar
         // de un arreglo con los datos de la membresía.
-        $response = $this->postJson('/api/clientes', [
+        $response = $this->postJson(route('cliente.store'), [
             'nombres' => 'Carlos',
             'apellidos' => 'Gomez',
             'documento' => '1234567890',

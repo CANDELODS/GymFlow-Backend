@@ -29,7 +29,7 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -39,13 +39,13 @@ class UsuarioAdministrativoSesionTest extends TestCase
         $this->assertAuthenticatedAs($usuario, 'web');
 
         // Accedemos al panel para registrar la primera actividad
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Simulamos 31 minutos de inactividad
         $this->travel(31)->minutes();
 
         // Intentamos acceder nuevamente al panel
-        $respuesta = $this->get('/panel');
+        $respuesta = $this->get(route('panel.index'));
 
         // Comprobamos que el middleware rechace el acceso
         $respuesta->assertUnauthorized();
@@ -67,25 +67,25 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
 
         // Accedemos al panel para registrar la primera actividad
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Simulamos 20 minutos de inactividad
         $this->travel(20)->minutes();
 
         // Realizamos una nueva solicitud que renueva el tiempo de inactividad
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Simulamos otros 20 minutos sin realizar solicitudes
         $this->travel(20)->minutes();
 
         // Comprobamos que el usuario todavía pueda acceder al panel
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Verificamos que continúe autenticado
         $this->assertAuthenticatedAs($usuario, 'web');
@@ -104,20 +104,20 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
 
         // Accedemos al panel para registrar la primera actividad
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Avanzamos el reloj hasta un segundo antes de cumplir los 30 minutos
         $this->travel(29)->minutes();
         $this->travel(59)->seconds();
 
         // Comprobamos que el administrador todavía pueda acceder
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Verificamos que continúe autenticado
         $this->assertAuthenticatedAs($usuario, 'web');
@@ -136,19 +136,19 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
 
         // Accedemos al panel para registrar la primera actividad
-        $this->get('/panel')->assertOk();
+        $this->get(route('panel.index'))->assertOk();
 
         // Avanzamos exactamente 30 minutos desde la última actividad
         $this->travel(30)->minutes();
 
         // Intentamos acceder nuevamente al panel
-        $respuesta = $this->get('/panel');
+        $respuesta = $this->get(route('panel.index'));
 
         // Comprobamos que el middleware rechace el acceso
         $respuesta->assertUnauthorized();
@@ -170,7 +170,7 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -185,7 +185,7 @@ class UsuarioAdministrativoSesionTest extends TestCase
         $this->travel(5)->minutes();
 
         // Consultamos el usuario autenticado mediante la API
-        $respuesta = $this->withHeaders($encabezados)->getJson('/api/user');
+        $respuesta = $this->withHeaders($encabezados)->getJson(route('user.show'));
 
         // Comprobamos que la solicitud haya sido autorizada
         $respuesta->assertOk();
@@ -200,7 +200,6 @@ class UsuarioAdministrativoSesionTest extends TestCase
         );
     }
 
-
     public function test_sesion_renueva_tiempo_de_inactividad_mediante_solicitudes_api(): void
     {
         // Creamos un usuario administrativo para la prueba
@@ -214,7 +213,7 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -226,26 +225,25 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ];
 
         // Realizamos la primera solicitud API para registrar la actividad
-        $this->withHeaders($encabezados)->getJson('/api/user')->assertOk();
+        $this->withHeaders($encabezados)->getJson(route('user.show'))->assertOk();
 
         // Simulamos 20 minutos de inactividad
         $this->travel(20)->minutes();
 
         // Realizamos una nueva solicitud API que renueva el tiempo de inactividad
-        $this->getJson('/api/user')->assertOk();
+        $this->getJson(route('user.show'))->assertOk();
 
         // Simulamos otros 20 minutos sin realizar solicitudes
         $this->travel(20)->minutes();
 
         // Comprobamos que el usuario todavía pueda acceder mediante la API
-        $respuesta = $this->getJson('/api/user');
+        $respuesta = $this->getJson(route('user.show'));
 
         $respuesta->assertOk();
 
         // Verificamos que el usuario continúe autenticado
         $this->assertAuthenticatedAs($usuario, 'web');
     }
-
 
     public function test_sesion_expira_despues_de_treinta_minutos_de_inactividad_en_solicitudes_api(): void
     {
@@ -260,7 +258,7 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ]);
 
         // Iniciamos sesión con las credenciales correctas
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -272,13 +270,13 @@ class UsuarioAdministrativoSesionTest extends TestCase
         ];
 
         // Realizamos una solicitud API para registrar la actividad inicial
-        $this->withHeaders($encabezados)->getJson('/api/user')->assertOk();
+        $this->withHeaders($encabezados)->getJson(route('user.show'))->assertOk();
 
         // Avanzamos exactamente 30 minutos sin realizar solicitudes
         $this->travel(30)->minutes();
 
         // Intentamos consultar nuevamente al usuario autenticado
-        $respuesta = $this->getJson('/api/user');
+        $respuesta = $this->getJson(route('user.show'));
 
         // Comprobamos que el middleware rechace el acceso
         $respuesta->assertUnauthorized();

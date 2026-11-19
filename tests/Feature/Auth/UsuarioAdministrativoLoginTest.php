@@ -14,7 +14,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
 
     public function test_login_rechaza_credenciales_vacias(): void
     {
-        $respuesta = $this->post('/login', []);
+        $respuesta = $this->post(route('login.store'), []);
 
         $respuesta->assertSessionHasErrors([
             'usuario',
@@ -24,7 +24,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
 
     public function test_login_rechaza_usuario_con_menos_de_cinco_caracteres(): void
     {
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'juan',
             'password' => 'Password123!',
         ]);
@@ -36,7 +36,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
 
     public function test_login_rechaza_contrasena_con_menos_de_ocho_caracteres(): void
     {
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'usuario_valido',
             'password' => 'Ab1!',
         ]);
@@ -59,7 +59,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Enviamos las credenciales para iniciar sesión
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -86,7 +86,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Intentamos iniciar sesión con una contraseña incorrecta
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'PasswordIncorrecta123!',
         ]);
@@ -120,7 +120,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
 
         // Realizamos cinco intentos de inicio de sesión con una contraseña incorrecta
         for ($intento = 0; $intento < 5; $intento++) {
-            $this->post('/login', [
+            $this->post(route('login.store'), [
                 'usuario' => 'admin_prueba',
                 'password' => 'PasswordIncorrecta123!',
             ]);
@@ -152,7 +152,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Intentamos iniciar sesión utilizando la contraseña correcta
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -190,7 +190,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Intentamos iniciar sesión con las credenciales correctas
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -222,7 +222,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Intentamos iniciar sesión con las credenciales correctas
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -248,7 +248,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
     public function test_login_rechaza_usuario_inexistente(): void
     {
         // Intentamos iniciar sesión con un usuario que no existe
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'usuario_inexistente',
             'password' => 'Password123!',
         ]);
@@ -271,7 +271,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
     {
         // Realizamos cinco solicitudes con un usuario inexistente
         for ($intento = 0; $intento < 5; $intento++) {
-            $respuesta = $this->post('/login', [
+            $respuesta = $this->post(route('login.store'), [
                 'usuario' => 'usuario_inexistente',
                 'password' => 'Password123!',
             ]);
@@ -281,7 +281,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         }
 
         // Realizamos una sexta solicitud para superar el límite permitido
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'usuario_inexistente',
             'password' => 'Password123!',
         ]);
@@ -295,7 +295,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         // Realizamos quince solicitudes distribuidas entre cinco usuarios diferentes
         for ($usuario = 1; $usuario <= 5; $usuario++) {
             for ($intento = 0; $intento < 3; $intento++) {
-                $respuesta = $this->post('/login', [
+                $respuesta = $this->post(route('login.store'), [
                     'usuario' => 'usuario_prueba_' . $usuario,
                     'password' => 'Password123!',
                 ]);
@@ -306,7 +306,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         }
 
         // Realizamos una solicitud adicional desde la misma IP con otro usuario
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'usuario_prueba_6',
             'password' => 'Password123!',
         ]);
@@ -333,7 +333,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         ]);
 
         // Realizamos el quinto intento con una contraseña incorrecta
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'PasswordIncorrecta123!',
         ]);
@@ -351,7 +351,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         $this->travel(59)->seconds();
 
         // Intentamos iniciar sesión con la contraseña correcta
-        $this->post('/login', [
+        $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);
@@ -364,7 +364,7 @@ class UsuarioAdministrativoLoginTest extends TestCase
         $this->travel(1)->seconds();
 
         // Intentamos iniciar sesión nuevamente con las credenciales correctas
-        $respuesta = $this->post('/login', [
+        $respuesta = $this->post(route('login.store'), [
             'usuario' => 'admin_prueba',
             'password' => 'Password123!',
         ]);

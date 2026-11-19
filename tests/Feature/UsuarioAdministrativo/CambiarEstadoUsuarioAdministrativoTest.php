@@ -36,7 +36,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Enviamos la solicitud para desactivar al empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $empleado->id_usuario),
             [
                 'activo' => false,
             ]
@@ -78,7 +78,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Enviamos la solicitud para activar al empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $empleado->id_usuario),
             [
                 'activo' => true,
             ]
@@ -120,7 +120,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Enviamos la solicitud para desactivar al otro dueño.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$otroDueno->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $otroDueno->id_usuario),
             [
                 'activo' => false,
             ]
@@ -162,7 +162,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Intentamos desactivar nuestra propia cuenta.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$dueno->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $dueno->id_usuario),
             [
                 'activo' => false,
             ]
@@ -213,7 +213,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
         foreach ($valoresInvalidos as $valor) {
 
             $response = $this->patchJson(
-                "/api/usuarios-administrativos/{$empleado->id_usuario}/estado",
+                route('usuarios-administrativos.estado', $empleado->id_usuario),
                 [
                     'activo' => $valor,
                 ]
@@ -257,7 +257,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Intentamos desactivar al otro empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$otroEmpleado->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $otroEmpleado->id_usuario),
             [
                 'activo' => false,
             ]
@@ -290,7 +290,7 @@ class CambiarEstadoUsuarioAdministrativoTest extends TestCase
 
         // Intentamos desactivar al empleado.
         $response = $this->patchJson(
-            "/api/usuarios-administrativos/{$empleado->id_usuario}/estado",
+            route('usuarios-administrativos.estado', $empleado->id_usuario),
             [
                 'activo' => false,
             ]
