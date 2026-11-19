@@ -174,12 +174,28 @@ Se verificaron escenarios de:
 - Limitación de solicitudes.
 - Cierre de sesión.
 - Expiración y renovación de sesiones.
+- Cambio de contraseña.
+- Verificación del estado de los usuarios.
 - Autenticación mediante solicitudes API.
 
-La ejecución completa de la suite registró:
+### Resultado de las pruebas
+
+Última ejecución de las pruebas del módulo de autenticación:
 
 ```text
-Tests: 23 passed (112 assertions)
+Tests: 36 passed (160 assertions)
+```
+
+Para ejecutar exclusivamente las pruebas de autenticación:
+
+```bash
+herd php artisan test tests/Feature/Auth
+```
+
+Para ejecutar toda la suite de pruebas del backend:
+
+```bash
+herd php artisan test
 ```
 
 También se realizó una prueba manual desde el navegador, comprobando que una solicitud a `/api/user` devuelve HTTP 401 después de superar los 30 minutos de inactividad.
@@ -195,4 +211,7 @@ También se realizó una prueba manual desde el navegador, comprobando que una s
 - `app/Http/Middleware/VerificarExpiracionSesion.php`
 - `bootstrap/app.php`
 - `tests/Feature/Auth/UsuarioAdministrativoLoginTest.php`
+- `tests/Feature/Auth/UsuarioAdministrativoLogoutTest.php`
+- `tests/Feature/Auth/CambiarContrasenaTest.php`
 - `tests/Feature/Auth/UsuarioAdministrativoSesionTest.php`
+- `tests/Feature/Auth/VerificarUsuarioActivoTest.php`
