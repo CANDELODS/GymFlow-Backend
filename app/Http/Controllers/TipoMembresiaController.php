@@ -53,7 +53,11 @@ class TipoMembresiaController extends Controller
      */
     public function show(string $id)
     {
-        //
+        // Buscamos el tipo de membresía por su identificador.
+        $tipoMembresia = TipoMembresia::findOrFail($id);
+
+        // Devolvemos el tipo de membresía mediante su Resource.
+        return new TipoMembresiaResource($tipoMembresia);
     }
 
     /**
