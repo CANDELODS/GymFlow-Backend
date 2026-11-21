@@ -8,7 +8,9 @@ Actualmente, contempla el registro de nuevos tipos de membresía, definiendo su 
 
 También permite consultar los tipos registrados, buscar por coincidencias parciales del nombre y filtrar los resultados según su estado. La consulta se encuentra disponible para usuarios administrativos con rol Dueño o Empleado y presenta los resultados en páginas de cinco registros, ordenados alfabéticamente por nombre.
 
-Además, permite actualizar de forma parcial o simultánea el nombre, la duración, el precio y el estado de un tipo de membresía. El estado también puede modificarse mediante una operación específica de activación o desactivación.
+Además, permite consultar individualmente un tipo de membresía mediante su identificador.
+
+También permite actualizar de forma parcial o simultánea el nombre, la duración, el precio y el estado de un tipo de membresía. El estado también puede modificarse mediante una operación específica de activación o desactivación.
 
 Las operaciones del módulo están disponibles para usuarios administrativos con rol Dueño o Empleado.
 
@@ -28,6 +30,7 @@ La desactivación de un tipo de membresía no implica su eliminación. Si existe
 - Ordenamiento alfabético y paginación de cinco registros por página.
 - Conservación de los filtros al navegar entre páginas.
 - Validación automatizada de los escenarios de consulta.
+- Consulta individual de un tipo de membresía mediante su identificador.
 - Actualización parcial de los atributos de un tipo de membresía.
 - Actualización simultánea de nombre, duración, precio y estado.
 - Activación y desactivación de tipos de membresía mediante una operación específica.
@@ -137,7 +140,7 @@ Archivo: `app/Http/Controllers/TipoMembresiaController.php`
 
 Coordina las solicitudes HTTP relacionadas con la gestión de tipos de membresía.
 
-Implementa los métodos `store()` para registrar nuevos tipos de membresía, `index()` para consultar los tipos registrados, `update()` para actualizar sus atributos y `cambiarEstado()` para activar o desactivar un tipo de membresía.
+Implementa los métodos `store()` para registrar nuevos tipos de membresía, `index()` para consultar los tipos registrados, `show()` para consultar un tipo específico, `update()` para actualizar sus atributos y `cambiarEstado()` para activar o desactivar un tipo de membresía.
 
 **Responsabilidades de `store()`:**
 
@@ -154,6 +157,14 @@ Implementa los métodos `store()` para registrar nuevos tipos de membresía, `in
 3. Ejecutar la acción `ConsultarTiposMembresia`.
 4. Transformar los resultados mediante `TipoMembresiaResource`.
 5. Devolver una colección JSON con los datos y la información de paginación.
+
+**Responsabilidades de `show()`:**
+
+1. Recibir el identificador del tipo de membresía mediante el parámetro `$id`.
+2. Buscar el registro utilizando `TipoMembresia::findOrFail($id)`.
+3. Generar una respuesta `404 Not Found` cuando el tipo de membresía no existe.
+4. Transformar el modelo encontrado mediante `TipoMembresiaResource`.
+5. Devolver el recurso correspondiente con HTTP `200 OK`.
 
 **Responsabilidades de `update()`:**
 
@@ -339,6 +350,52 @@ El proceso sigue este orden:
 9. `TipoMembresiaResource` transforma los resultados.
 10. El backend devuelve HTTP `200 OK` con la colección y los metadatos de paginación.
 
+### Flujo de consulta individual
+
+La consulta de un tipo de membresía específico se realiza mediante una solicitud HTTP `GET`.
+
+**Endpoint:**
+
+`GET /api/tipos-membresia/{id}`
+
+**Nombre de ruta:** `tipos-membresia.show`.
+
+La operación está protegida mediante `auth:sanctum` y `usuario.activo`. El acceso está permitido a usuarios administrativos con rol `dueno` o `empleado`.
+
+**Proceso de consulta:**
+
+1. El usuario administrativo solicita la consulta de un tipo de membresía específico.
+2. El frontend envía una solicitud `GET /api/tipos-membresia/{id}`, proporcionando el identificador del registro.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario continúe activa.
+5. `TipoMembresiaController` recibe el identificador y busca el registro mediante `TipoMembresia::findOrFail($id)`.
+6. Si el registro existe, `TipoMembresiaResource` transforma el modelo.
+7. El backend devuelve HTTP `200 OK` con los datos del tipo de membresía.
+
+**Respuesta exitosa:**
+
+```json
+{
+    "data": {
+        "id_tipo_membresia": 1,
+        "nombre": "Mensual",
+        "duracion_dias": 30,
+        "precio": "80000.00",
+        "activo": true
+    }
+}
+```
+
+Los valores son ilustrativos.
+
+**Respuestas de error:**
+
+| Código HTTP | Situación |
+|---|---|
+| `401 Unauthorized` | El usuario no está autenticado. |
+| `403 Forbidden` | La cuenta del usuario está desactivada. |
+| `404 Not Found` | No existe un tipo de membresía con el identificador proporcionado. |
+
 ### Flujo de actualización
 
 La actualización de los atributos se realiza mediante una solicitud HTTP `PATCH`.
@@ -393,6 +450,8 @@ La desactivación no elimina el registro ni afecta las membresías adquiridas qu
 El registro de tipos de membresía está permitido a los usuarios con rol `dueno` y `empleado`.
 
 La autorización se comprueba mediante `RegistrarTipoMembresiaRequest`.
+
+La consulta individual y general están protegidas mediante los middlewares `auth:sanctum` y `usuario.activo`. El acceso está disponible para usuarios administrativos con rol `dueno` o `empleado`.
 
 La actualización y el cambio de estado también están autorizados para usuarios con rol `dueno` o `empleado`, mediante `ActualizarTipoMembresiaRequest` y `CambiarEstadoTipoMembresiaRequest`, respectivamente.
 
@@ -480,6 +539,7 @@ Actualmente se encuentran implementadas:
 |---|---|---|---|
 | POST | `/api/tipos-membresia` | `tipos-membresia.store` | Registrar tipo de membresía. |
 | GET | `/api/tipos-membresia` | `tipos-membresia.index` | Consultar tipos de membresía. |
+| GET | `/api/tipos-membresia/{id}` | `tipos-membresia.show` | Consultar un tipo de membresía específico. |
 | PATCH | `/api/tipos-membresia/{tipoMembresia}` | `tipos-membresia.update` | Actualizar uno o varios atributos del tipo de membresía. |
 | PATCH | `/api/tipos-membresia/{tipoMembresia}/estado` | `tipos-membresia.estado` | Activar o desactivar un tipo de membresía. |
 
@@ -606,8 +666,10 @@ herd php artisan test
 
 ## 8. Estado del módulo
 
-El módulo de gestión de tipos de membresía cuenta con el registro (RF11), la consulta (RF12) y la actualización y gestión del estado (RF13), implementados y validados mediante pruebas automatizadas.
+El módulo de gestión de tipos de membresía cuenta con el registro (RF11), la consulta general e individual (RF12) y la actualización y gestión del estado (RF13), implementados.
 
 Las operaciones de actualización permiten modificar de forma parcial o simultánea los atributos del tipo de membresía. También se dispone de una operación específica para activar o desactivar un registro.
+
+La consulta individual permite recuperar un tipo de membresía mediante su identificador y devuelve `404 Not Found` cuando el registro no existe.
 
 La desactivación de un tipo de membresía conserva los registros históricos de las adquisiciones asociadas y evita que se utilice para nuevas adquisiciones. El control de concurrencia entre el registro de adquisiciones y la desactivación protege la consistencia de estas operaciones.

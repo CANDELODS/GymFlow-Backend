@@ -197,11 +197,36 @@ herd php artisan key:generate
 
 ### 4. Preparar la base de datos
 
-Crear la base de datos configurada en `.env` y ejecutar las migraciones:
+Después de crear la base de datos y configurar la conexión en `.env` podemos ejecutar las migraciones y los seeders para preparar la estructura y cargar los datos iniciales:
 
 ```bash
-herd php artisan migrate
+herd php artisan migrate --seed
 ```
+
+### Datos iniciales
+
+El proyecto incluye factories y seeders para generar información ficticia que facilita el desarrollo y las pruebas manuales del backend.
+
+La carga inicial contempla:
+
+| Entidad | Registros |
+|---|---:|
+| Usuarios administrativos | 4 |
+| Clientes | 20 |
+| Tipos de membresía | 4 |
+| Membresías adquiridas | 30 |
+
+Los datos generados incluyen clientes sin membresía y clientes con membresías vencidas, próximas a vencer y activas. También se generan adquisiciones históricas para facilitar la consulta de los registros.
+
+> **Importante:** estos datos son exclusivamente para entornos de desarrollo. No deben utilizarse como información real ni cargarse en producción.
+
+Para reconstruir completamente la base de datos y volver a cargar los datos iniciales durante el desarrollo, se puede ejecutar:
+
+```bash
+herd php artisan migrate:fresh --seed
+```
+
+Este comando elimina todas las tablas existentes antes de ejecutar nuevamente las migraciones y los seeders. Debe utilizarse con precaución, ya que elimina la información almacenada en la base de datos.
 
 ### 5. Ejecutar el backend
 

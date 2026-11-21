@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 
 class TipoMembresia extends Model
 {
+    use HasFactory;
     // Indicamos el nombre de la tabla asociada.
     protected $table = 'tipo_membresia';
 
