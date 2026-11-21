@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 
 class MembresiaAdquirida extends Model
 {
+    use HasFactory;
     // Indicamos el nombre de la tabla asociada.
     protected $table = 'membresia_adquirida';
 
