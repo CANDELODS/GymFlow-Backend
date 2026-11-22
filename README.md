@@ -155,53 +155,67 @@ La documentación se actualizará conforme se implementen y validen nuevos reque
 
 Para ejecutar el proyecto localmente se necesitan:
 
-- PHP 8.3 o superior.
-- Composer.
+- PHP 8.4.1 o superior.
+- Laravel Herd, para gestionar el entorno local de PHP y ejecutar los comandos del proyecto.
+- Composer 2.
 - MySQL 8.
 - Node.js y npm.
-- Laravel 13.
-- Laravel Herd para el entorno local utilizado durante el desarrollo.
+- Git.
 
-También se requiere configurar el entorno local de Laravel y disponer de una instancia de MySQL.
+También se requiere disponer de una instancia de MySQL y tener configurado el entorno local de Laravel Herd con una versión de PHP compatible.
 
 ## Instalación
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
-cd gymflow
+git clone https://github.com/CANDELODS/GymFlow-Backend.git
+cd GymFlow-Backend
 ```
 
-### 2. Instalar dependencias del backend
+### 2. Crear y configurar la base de datos
 
-```bash
-composer install
-```
+Antes de ejecutar el instalador, crear la base de datos MySQL que utilizará el proyecto. Por defecto, el archivo `.env.example` está configurado para utilizar una base de datos llamada `gymflow`.
+
+Si se utiliza otro nombre, se deberá configurar la variable DB_DATABASE en el archivo .env durante el siguiente paso.
 
 ### 3. Configurar variables de entorno
 
 Crear el archivo `.env` a partir de `.env.example`:
 
 ```bash
-cp .env.example .env
+copy .env.example .env
 ```
 
-Configurar las variables de conexión a la base de datos y los demás parámetros necesarios para el entorno local.
+Configurar las variables de conexión a la base de datos según el entorno local:
 
-Generar la clave de aplicación:
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=gymflow
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+Ajustar las credenciales según la configuración de MySQL utilizada.
+
+### 4. Instalar y preparar el proyecto
+
+Una vez creada la base de datos y configurado el archivo `.env`, ejecutar:
 
 ```bash
-herd php artisan key:generate
+herd composer run setup
 ```
 
-### 4. Preparar la base de datos
+Este comando automatiza la preparación inicial del proyecto mediante las siguientes operaciones:
 
-Después de crear la base de datos y configurar la conexión en `.env` podemos ejecutar las migraciones y los seeders para preparar la estructura y cargar los datos iniciales:
-
-```bash
-herd php artisan migrate --seed
-```
+1. Instala las dependencias de PHP utilizando Composer.
+2. Crea el archivo `.env` a partir de `.env.example` si todavía no existe.
+3. Genera la clave de aplicación de Laravel.
+4. Ejecuta las migraciones y los seeders iniciales.
+5. Instala las dependencias de JavaScript mediante npm.
+6. Compila los recursos del frontend con Vite.
 
 ### Datos iniciales
 
@@ -219,6 +233,8 @@ La carga inicial contempla:
 Los datos generados incluyen clientes sin membresía y clientes con membresías vencidas, próximas a vencer y activas. También se generan adquisiciones históricas para facilitar la consulta de los registros.
 
 > **Importante:** estos datos son exclusivamente para entornos de desarrollo. No deben utilizarse como información real ni cargarse en producción.
+
+> **Precaución:** el comando `setup` está diseñado para la instalación inicial. No debe ejecutarse repetidamente sobre una instalación existente, ya que vuelve a ejecutar los seeders y genera nuevamente la clave de aplicación.
 
 Para reconstruir completamente la base de datos y volver a cargar los datos iniciales durante el desarrollo, se puede ejecutar:
 
