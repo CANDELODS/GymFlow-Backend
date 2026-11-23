@@ -32,6 +32,18 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         'index',
     ])->name('cliente.index');
 
+    // RF9: Actualizar y gestionar estado del cliente. (Actualización)
+    Route::patch(
+        '/clientes/{cliente}',
+        [ClienteController::class, 'update']
+    )->name('cliente.update');
+
+    // RF9: Actualizar y gestionar estado del cliente. (Cambio de estado)
+    Route::patch(
+        '/clientes/{cliente}/estado',
+        [ClienteController::class, 'cambiarEstado']
+    )->name('cliente.estado');
+
     // RF11: Registrar tipo de membresía
     Route::post(
         '/tipos-membresia',
