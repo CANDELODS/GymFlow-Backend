@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Cliente\CambiarEstadoCliente;
+use App\Http\Requests\Cliente\CambiarEstadoClienteRequest;
+use App\Actions\Cliente\ActualizarCliente;
+use App\Http\Requests\Cliente\ActualizarClienteRequest;
+use App\Models\Cliente;
 use App\Actions\Cliente\ConsultarClientes;
 use App\Http\Requests\Cliente\ConsultarClientesRequest;
 use App\Actions\MembresiaAdquirida\RegistrarMembresiaAdquirida;
@@ -108,5 +113,46 @@ class ClienteController extends Controller
                 'membresia_registrada' => false,
             ], 201);
         }
+    }
+    /**
+     * Actualiza la información de un cliente existente.
+     */
+    public function update(
+        ActualizarClienteRequest $request,
+        Cliente $cliente,
+        ActualizarCliente $actualizarCliente
+    ) {
+        // Ejecutamos la acción con los datos validados del request.
+        $clienteActualizado = $actualizarCliente->ejecutar(
+            $cliente,
+            $request->validated()
+        );
+
+        // Devolvemos el cliente actualizado.
+        return response()->json([
+            'mensaje' => 'Cliente actualizado correctamente.',
+            'cliente' => new ClienteResource($clienteActualizado),
+        ], 200);
+    }
+
+    /**
+     * Cambia el estado de un cliente.
+     */
+    public function cambiarEstado(
+        CambiarEstadoClienteRequest $request,
+        Cliente $cliente,
+        CambiarEstadoCliente $cambiarEstadoCliente
+    ) {
+        // Ejecutamos la acción con el estado validado.
+        $clienteActualizado = $cambiarEstadoCliente->ejecutar(
+            $cliente,
+            $request->validated()['activo']
+        );
+
+        // Devolvemos el cliente con su estado actualizado.
+        return response()->json([
+            'mensaje' => 'Estado del cliente actualizado correctamente.',
+            'cliente' => new ClienteResource($clienteActualizado),
+        ], 200);
     }
 }
