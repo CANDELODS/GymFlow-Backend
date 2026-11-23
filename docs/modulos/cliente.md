@@ -2,7 +2,7 @@
 
 ## 1. Objetivo y alcance
 
-El módulo de gestión de clientes permite registrar y consultar los clientes del gimnasio, almacenando su información personal y de contacto, así como la autorización para el tratamiento de sus datos personales.
+El módulo de gestión de clientes permite registrar, consultar, actualizar y gestionar el estado de los clientes del gimnasio, almacenando su información personal y de contacto, así como la autorización para el tratamiento de sus datos personales.
 
 El registro contempla los nombres, apellidos, documento de identidad y teléfono del cliente. El sistema verifica que el documento no se encuentre registrado previamente y establece automáticamente el estado inicial del cliente como activo.
 
@@ -13,6 +13,12 @@ El registro de la membresía es independiente de la creación del cliente. Si lo
 Adicionalmente, el módulo permite consultar los clientes registrados mediante búsqueda y filtros, facilitando la identificación de clientes y el seguimiento del estado de sus membresías adquiridas.
 
 La consulta contempla la última membresía adquirida por cada cliente, cuyo estado se determina automáticamente según su fecha de vencimiento.
+
+El módulo también permite actualizar la información de los clientes registrados y gestionar su estado. Los usuarios administrativos pueden modificar los nombres, apellidos, documento y teléfono, así como habilitar o deshabilitar un cliente.
+
+La actualización de información permite modificar parcialmente los campos editables, conservando los valores de aquellos que no se envían. También permite modificar el estado del cliente durante la misma operación. Adicionalmente, existe una operación independiente para cambiar exclusivamente su estado.
+
+Los clientes deshabilitados conservan su información personal y sus registros históricos de membresías adquiridas. Pueden habilitarse nuevamente cuando corresponda.
 
 Las operaciones del módulo están disponibles para usuarios administrativos con rol Dueño o Empleado.
 
@@ -35,7 +41,14 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 - Consulta de la última membresía adquirida de cada cliente.
 - Paginación de cinco registros por página y conservación de filtros entre páginas.
 - Validación de los parámetros de búsqueda, filtrado y paginación.
-- Validación automatizada de los escenarios de registro y consulta de clientes.
+- Actualización parcial de la información de clientes.
+- Validación de unicidad del documento al actualizar un cliente, excluyendo su propio registro.
+- Actualización opcional del estado durante la modificación de información.
+- Habilitación y deshabilitación de clientes mediante una operación independiente.
+- Conservación de la autorización para el tratamiento de datos personales y su fecha durante las actualizaciones.
+- Conservación de los registros históricos de membresías al actualizar o cambiar el estado de un cliente.
+- Posibilidad de habilitar nuevamente clientes previamente deshabilitados.
+- Validación automatizada de los escenarios de registro, consulta, actualización y gestión del estado de clientes.
 
 ## 2. Tecnologías utilizadas
 
@@ -114,6 +127,48 @@ El Form Request centraliza la validación de los parámetros de consulta y evita
 
 También proporciona mensajes de validación personalizados en español.
 
+### ActualizarClienteRequest
+
+Archivo: `app/Http/Requests/Cliente/ActualizarClienteRequest.php`
+
+Valida y autoriza las solicitudes de actualización de información de clientes.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Campos validados:**
+
+- `nombres`: opcional, obligatorio cuando se envía, de tipo texto y con un máximo de 100 caracteres.
+- `apellidos`: opcional, obligatorio cuando se envía, de tipo texto y con un máximo de 100 caracteres.
+- `documento`: opcional, obligatorio cuando se envía, de tipo texto, con un máximo de 30 caracteres y único en la tabla `cliente`, excluyendo el registro que se está actualizando.
+- `telefono`: opcional, obligatorio cuando se envía, de tipo texto y con un máximo de 20 caracteres.
+- `activo`: opcional, obligatorio cuando se envía y debe ser un valor booleano válido.
+
+El uso de la regla `sometimes` permite realizar actualizaciones parciales, conservando los valores de los campos que no se incluyen en la solicitud.
+
+La autorización para el tratamiento de datos personales y su fecha no forman parte de los campos editables de esta operación.
+
+También proporciona mensajes de validación personalizados en español.
+
+### CambiarEstadoClienteRequest
+
+Archivo: `app/Http/Requests/Cliente/CambiarEstadoClienteRequest.php`
+
+Valida y autoriza las solicitudes destinadas exclusivamente a cambiar el estado de un cliente.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Campos validados:**
+
+- `activo`: obligatorio y debe contener un valor booleano válido.
+
+Este Form Request exige que el estado sea enviado en cada solicitud, evitando cambios de estado sin especificar el nuevo valor.
+
+También proporciona mensajes de validación personalizados en español.
+
 ### RegistrarCliente
 
 Archivo: `app/Actions/Cliente/RegistrarCliente.php`
@@ -166,13 +221,47 @@ La acción utiliza `whereHas()` para filtrar según la relación `ultimaMembresi
 
 La paginación conserva los filtros aplicados, permitiendo navegar entre páginas sin perder los criterios de búsqueda.
 
+### ActualizarCliente
+
+Archivo: `app/Actions/Cliente/ActualizarCliente.php`
+
+Centraliza la operación de actualización de información de clientes.
+
+Responsabilidades:
+
+1. Recibir la instancia del cliente que se desea actualizar.
+2. Recibir los datos previamente validados por `ActualizarClienteRequest`.
+3. Actualizar únicamente los campos recibidos mediante Eloquent.
+4. Devolver la instancia del cliente con la información actualizada.
+
+La acción utiliza `update()` para aplicar los datos recibidos y `refresh()` para devolver el modelo actualizado.
+
+La actualización parcial permite conservar los valores de los atributos que no se incluyen en la solicitud.
+
+### CambiarEstadoCliente
+
+Archivo: `app/Actions/Cliente/CambiarEstadoCliente.php`
+
+Centraliza la operación de cambio de estado de los clientes.
+
+Responsabilidades:
+
+1. Recibir la instancia del cliente cuyo estado se desea modificar.
+2. Recibir el nuevo valor booleano del campo `activo`, previamente validado.
+3. Actualizar exclusivamente el estado del cliente.
+4. Devolver la instancia del cliente con su estado actualizado.
+
+La acción utiliza `update()` para modificar únicamente el atributo `activo` y `refresh()` para devolver el modelo actualizado.
+
+Esta operación no modifica los datos personales ni los registros históricos de membresías adquiridas asociados al cliente.
+
 ### ClienteController
 
 Archivo: `app/Http/Controllers/ClienteController.php`
 
-Coordina las solicitudes HTTP relacionadas con el registro y consulta de clientes.
+Coordina las solicitudes HTTP relacionadas con el registro, consulta, actualización y gestión del estado de clientes.
 
-Implementa los métodos `store()` e `index()`.
+Implementa los métodos `store()`, `index()`, `update()` y `cambiarEstado()`.
 
 **Responsabilidades de `store()`:**
 
@@ -199,7 +288,25 @@ Los errores producidos durante el registro de la membresía se reportan mediante
 5. Transformar los registros mediante `ClienteResource::collection()`.
 6. Devolver la colección JSON conservando la estructura de paginación de Laravel.
 
-El controlador delega la lógica de búsqueda, filtrado y paginación en la acción correspondiente, manteniendo separadas las responsabilidades de la capa HTTP y la lógica de aplicación.
+**Responsabilidades de `update()`:**
+
+1. Recibir la solicitud mediante `ActualizarClienteRequest`.
+2. Recibir el cliente correspondiente mediante model binding.
+3. Obtener los datos previamente validados.
+4. Ejecutar la acción `ActualizarCliente`.
+5. Transformar la información actualizada mediante `ClienteResource`.
+6. Devolver una respuesta JSON indicando que la actualización se realizó correctamente.
+
+**Responsabilidades de `cambiarEstado()`:**
+
+1. Recibir la solicitud mediante `CambiarEstadoClienteRequest`.
+2. Recibir el cliente correspondiente mediante model binding.
+3. Obtener el valor validado de `activo`.
+4. Ejecutar la acción `CambiarEstadoCliente`.
+5. Transformar la información actualizada mediante `ClienteResource`.
+6. Devolver una respuesta JSON indicando que el estado se actualizó correctamente.
+
+Los métodos de actualización y cambio de estado delegan las operaciones en sus respectivas Actions, manteniendo separadas las responsabilidades de validación, lógica de aplicación y respuesta HTTP.
 
 ### ClienteResource
 
@@ -599,44 +706,212 @@ Cuando no existen resultados, la API devuelve HTTP `200 OK` con una colección v
 | `403 Forbidden` | La cuenta del usuario está desactivada o no tiene autorización para realizar la operación. |
 | `422 Unprocessable Entity` | Uno o varios parámetros de búsqueda, filtrado o paginación incumplen las reglas de validación. |
 
+### 4.3. Actualización de clientes
+
+La actualización de clientes se realiza mediante una solicitud HTTP `PATCH`.
+
+#### Endpoint
+
+`PATCH /api/clientes/{cliente}`
+
+**Middlewares aplicados:**
+
+- `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
+
+La autorización por rol se realiza mediante `ActualizarClienteRequest`, que permite únicamente a usuarios con rol `dueno` o `empleado`.
+
+**Nombre de ruta:**
+
+`cliente.update`
+
+#### Proceso de actualización
+
+1. El usuario administrativo selecciona un cliente registrado.
+2. El frontend envía una solicitud `PATCH /api/clientes/{cliente}` con los campos que desea modificar.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario continúe activa.
+5. Laravel identifica el cliente mediante model binding.
+6. `ActualizarClienteRequest` autoriza la operación y valida los campos recibidos.
+7. El controlador obtiene los datos previamente validados.
+8. El controlador ejecuta la acción `ActualizarCliente`.
+9. La acción actualiza únicamente los campos recibidos.
+10. `ClienteResource` transforma el modelo actualizado.
+11. El backend devuelve HTTP `200 OK` con el resultado de la operación.
+
+#### Actualización parcial
+
+La solicitud permite modificar uno o varios campos editables sin necesidad de enviar toda la información del cliente.
+
+Los campos disponibles son:
+
+- `nombres`
+- `apellidos`
+- `documento`
+- `telefono`
+- `activo`
+
+El campo `activo` permite modificar el estado del cliente durante la actualización de información.
+
+Los campos que no se envían conservan sus valores originales.
+
+La autorización para el tratamiento de datos personales y su fecha no pueden modificarse mediante este endpoint.
+
+#### Ejemplo de solicitud
+
+```json
+{
+    "nombres": "Juan Carlos",
+    "telefono": "3119876543"
+}
+```
+
+Los valores son ilustrativos.
+
+#### Respuesta exitosa
+
+La API devuelve HTTP `200 OK`.
+
+```json
+{
+    "mensaje": "Cliente actualizado correctamente.",
+    "cliente": {
+        "id_cliente": 1,
+        "nombres": "Juan Carlos",
+        "apellidos": "Gomez",
+        "documento": "1234567890",
+        "telefono": "3119876543",
+        "activo": true,
+        "autorizacion_tratamiento": true,
+        "fecha_autorizacion": "2026-11-17 10:30:00"
+    }
+}
+```
+
+Los valores son ilustrativos.
+
+### 4.4. Cambio de estado de clientes
+
+El cambio de estado de clientes se realiza mediante una solicitud HTTP `PATCH`.
+
+#### Endpoint
+
+`PATCH /api/clientes/{cliente}/estado`
+
+**Middlewares aplicados:**
+
+- `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
+
+La autorización por rol se realiza mediante `CambiarEstadoClienteRequest`, que permite únicamente a usuarios con rol `dueno` o `empleado`.
+
+**Nombre de ruta:**
+
+`cliente.estado`
+
+#### Proceso de cambio de estado
+
+1. El usuario administrativo selecciona un cliente registrado.
+2. El frontend envía una solicitud `PATCH /api/clientes/{cliente}/estado` con el nuevo valor de `activo`.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario continúe activa.
+5. Laravel identifica el cliente mediante model binding.
+6. `CambiarEstadoClienteRequest` autoriza la operación y valida el valor recibido.
+7. El controlador obtiene el valor booleano validado.
+8. El controlador ejecuta la acción `CambiarEstadoCliente`.
+9. La acción modifica exclusivamente el campo `activo`.
+10. `ClienteResource` transforma el modelo actualizado.
+11. El backend devuelve HTTP `200 OK` con el resultado de la operación.
+
+#### Habilitación y deshabilitación
+
+El campo `activo` determina la disponibilidad del cliente para las operaciones que requieren un cliente habilitado.
+
+- `true`: habilita al cliente.
+- `false`: deshabilita al cliente.
+
+Un cliente deshabilitado conserva sus datos personales y sus registros históricos de membresías adquiridas.
+
+El cliente puede habilitarse nuevamente mediante este mismo endpoint, enviando `activo` con valor `true`.
+
+#### Ejemplo de solicitud
+
+```json
+{
+    "activo": false
+}
+```
+
+#### Respuesta exitosa
+
+La API devuelve HTTP `200 OK`.
+
+```json
+{
+    "mensaje": "Estado del cliente actualizado correctamente.",
+    "cliente": {
+        "id_cliente": 1,
+        "nombres": "Carlos",
+        "apellidos": "Gomez",
+        "documento": "1234567890",
+        "telefono": "3001234567",
+        "activo": false,
+        "autorizacion_tratamiento": true,
+        "fecha_autorizacion": "2026-11-17 10:30:00"
+    }
+}
+```
+
+Los valores son ilustrativos.
+
 ## 5. Reglas de validación y seguridad
 
 ### Autorización por roles
 
-El registro y la consulta de clientes están permitidos a los usuarios con rol `dueno` y `empleado`.
+El registro, consulta, actualización y cambio de estado de clientes están permitidos a los usuarios con rol `dueno` y `empleado`.
 
 La autorización se comprueba mediante los respectivos Form Requests:
 
 - `RegistrarClienteRequest`.
 - `ConsultarClientesRequest`.
+- `ActualizarClienteRequest`.
+- `CambiarEstadoClienteRequest`.
 
 ### Nombres y apellidos
 
-Los nombres y apellidos son obligatorios y deben ser valores de tipo texto.
+Los nombres y apellidos son obligatorios durante el registro y deben ser valores de tipo texto.
 
 Cada campo admite un máximo de 100 caracteres.
 
+Durante la actualización, estos campos son opcionales, pero si se envían deben contener un valor válido y no pueden estar vacíos.
+
 ### Documento
 
-El documento es obligatorio, debe ser de tipo texto y admite un máximo de 30 caracteres.
+El documento es obligatorio durante el registro, debe ser de tipo texto y admite un máximo de 30 caracteres.
 
 Su valor debe ser único dentro de la tabla `cliente`.
 
 No se permite registrar dos clientes con el mismo documento.
 
+Durante la actualización, el documento también debe ser único. La validación excluye el registro del cliente que se está modificando, permitiendo conservar su propio documento sin generar un error de unicidad.
+
 ### Teléfono
 
-El teléfono es obligatorio, debe ser de tipo texto y admite un máximo de 20 caracteres.
+El teléfono es obligatorio durante el registro, debe ser de tipo texto y admite un máximo de 20 caracteres.
+
+Durante la actualización, es opcional, pero si se envía debe cumplir las mismas reglas de validación.
 
 ### Autorización para el tratamiento de datos personales
 
-La autorización para el tratamiento de datos personales es obligatoria.
+La autorización para el tratamiento de datos personales es obligatoria durante el registro.
 
 El campo `autorizacion_tratamiento` debe contener un valor aceptado por la regla `accepted` de Laravel.
 
 No se permite registrar un cliente sin esta autorización.
 
 La fecha en que se concede la autorización se genera automáticamente mediante `now()` en el backend, por lo que el frontend no puede establecerla directamente.
+
+Los campos `autorizacion_tratamiento` y `fecha_autorizacion` no forman parte de los atributos editables de RF9. Por lo tanto, las operaciones de actualización no modifican su información.
 
 ### Estado inicial del cliente
 
@@ -679,6 +954,47 @@ Las reglas contemplan:
 - `page`: debe ser un número entero mayor o igual a 1.
 
 No se ejecutan consultas cuando los parámetros recibidos incumplen las reglas de validación.
+
+### Actualización de información
+
+La actualización de clientes se realiza mediante `ActualizarClienteRequest`.
+
+Los campos editables son `nombres`, `apellidos`, `documento`, `telefono` y `activo`.
+
+Todos son opcionales, pero cuando se envían deben cumplir sus respectivas reglas de validación.
+
+La operación permite actualizar parcialmente la información, conservando los valores de los campos omitidos.
+
+### Unicidad del documento durante la actualización
+
+El documento debe continuar siendo único dentro de la tabla `cliente`.
+
+Durante la actualización, la validación excluye el registro del cliente que se está modificando mediante `Rule::unique()->ignore()`.
+
+Esto permite conservar el documento actual del cliente, pero impide utilizar el documento perteneciente a otro cliente.
+
+### Gestión del estado del cliente
+
+El estado se puede modificar mediante dos operaciones:
+
+- Actualización de información: permite enviar `activo` opcionalmente junto con otros campos editables.
+- Cambio de estado: modifica exclusivamente `activo` mediante el endpoint `/clientes/{cliente}/estado`.
+
+La segunda operación requiere que el campo `activo` esté presente y contenga un valor booleano válido.
+
+### Conservación de información personal e histórica
+
+Las operaciones de actualización y cambio de estado no modifican los campos `autorizacion_tratamiento` y `fecha_autorizacion`.
+
+Tampoco eliminan ni modifican las membresías adquiridas asociadas al cliente.
+
+Deshabilitar un cliente no implica eliminar su información ni sus registros históricos.
+
+### Disponibilidad de clientes
+
+Las operaciones que requieren un cliente habilitado deben comprobar que su estado `activo` sea verdadero.
+
+Un cliente deshabilitado no debe estar disponible para dichas operaciones, pero puede habilitarse nuevamente mediante el endpoint de cambio de estado.
 
 ### Búsqueda de clientes
 
@@ -768,8 +1084,10 @@ Actualmente se encuentran implementadas:
 |---|---|---|---|
 | POST | `/api/clientes` | `cliente.store` | Registrar un cliente y, opcionalmente, su primera membresía. |
 | GET | `/api/clientes` | `cliente.index` | Consultar clientes mediante búsqueda, filtros y paginación. |
+| PATCH | `/api/clientes/{cliente}` | `cliente.update` | Actualizar parcialmente la información del cliente y, opcionalmente, su estado. |
+| PATCH | `/api/clientes/{cliente}/estado` | `cliente.estado` | Cambiar exclusivamente el estado del cliente. |
 
-Ambas rutas están protegidas mediante `auth:sanctum` y `usuario.activo`.
+Todas las rutas están protegidas mediante `auth:sanctum` y `usuario.activo`.
 
 La autorización por rol se realiza mediante los respectivos Form Requests, que permiten el acceso a usuarios con rol `dueno` o `empleado`.
 
@@ -867,6 +1185,50 @@ Se implementaron 30 pruebas mediante PHPUnit para verificar los permisos, la bú
 - Comprobar que una búsqueda sin coincidencias devuelva una colección vacía.
 - Comprobar que la consulta funcione cuando no existen clientes registrados.
 
+### Pruebas de actualización de clientes
+
+Archivo: `tests/Feature/Cliente/ActualizarClienteTest.php`
+
+Se implementaron 16 pruebas mediante PHPUnit para verificar la actualización parcial de información, la validación de los campos editables, la autorización y la conservación de los registros históricos.
+
+**Escenarios comprobados:**
+
+1. Un dueño puede actualizar un cliente.
+2. Un empleado puede actualizar un cliente.
+3. Un usuario no autenticado no puede actualizar un cliente.
+4. Un usuario inactivo no puede actualizar un cliente.
+5. Se pueden actualizar todos los campos simultáneamente.
+6. Se pueden actualizar individualmente los campos del cliente.
+7. Se permite actualizar con una solicitud vacía.
+8. No se permite actualizar con campos obligatorios vacíos.
+9. No se permite actualizar con valores que superen las longitudes máximas.
+10. No se permite actualizar con valores que no sean cadenas.
+11. No se permite utilizar el documento de otro cliente.
+12. Se permite conservar el documento actual del cliente.
+13. No se permite actualizar con un estado inválido.
+14. No se puede actualizar un cliente inexistente.
+15. No se permite modificar los datos de autorización de tratamiento.
+16. Actualizar un cliente no modifica su historial de membresías.
+
+### Pruebas de cambio de estado de clientes
+
+Archivo: `tests/Feature/Cliente/CambiarEstadoClienteTest.php`
+
+Se implementaron 10 pruebas mediante PHPUnit para verificar la habilitación y deshabilitación de clientes, la autorización de la operación y la conservación de la información asociada.
+
+**Escenarios comprobados:**
+
+1. Un dueño puede deshabilitar un cliente.
+2. Un empleado puede deshabilitar un cliente.
+3. Un dueño puede habilitar nuevamente un cliente.
+4. Un usuario no autenticado no puede cambiar el estado de un cliente.
+5. Un usuario inactivo no puede cambiar el estado de un cliente.
+6. No se permite cambiar el estado sin enviar el campo `activo`.
+7. No se permite cambiar el estado con valores inválidos.
+8. No se puede cambiar el estado de un cliente inexistente.
+9. Cambiar el estado no modifica los demás datos del cliente.
+10. Cambiar el estado no modifica el historial de membresías.
+
 ### Ejecución de las pruebas
 
 Para ejecutar las pruebas de registro:
@@ -881,6 +1243,24 @@ Para ejecutar las pruebas de consulta:
 herd php artisan test --filter=ConsultarClientesTest
 ```
 
+Para ejecutar las pruebas de actualización:
+
+```bash
+herd php artisan test --filter=ActualizarClienteTest
+```
+
+Para ejecutar las pruebas de cambio de estado:
+
+```bash
+herd php artisan test --filter=CambiarEstadoClienteTest
+```
+
+Para ejecutar todas las pruebas del módulo:
+
+```bash
+herd php artisan test tests/Feature/Cliente
+```
+
 Para ejecutar todas las pruebas del proyecto:
 
 ```bash
@@ -889,7 +1269,7 @@ herd php artisan test
 
 ### Resultado de las pruebas
 
-Último resultado individual registrado:
+Últimos resultados individuales registrados:
 
 **Registro de clientes:**
 
@@ -903,9 +1283,27 @@ Tests: 23 passed (184 assertions)
 Tests: 30 passed (141 assertions)
 ```
 
+**Actualización de clientes:**
+
+```text
+Tests: 16 passed (74 assertions)
+```
+
+**Cambio de estado de clientes:**
+
+```text
+Tests: 10 passed (31 assertions)
+```
+
+**Resultado consolidado del módulo de clientes:**
+
+```text
+Tests: 79 passed (430 assertions)
+```
+
 ## 8. Estado del módulo
 
-El módulo de gestión de clientes cuenta con las funcionalidades de registro (RF7) y consulta (RF8), implementadas y validadas mediante pruebas automatizadas.
+El módulo de gestión de clientes cuenta con las funcionalidades de registro (RF7), consulta (RF8) y actualización y gestión del estado (RF9), implementadas y validadas mediante pruebas automatizadas.
 
 La funcionalidad de registro permite crear clientes con sus datos personales y de contacto, exigir la autorización para el tratamiento de datos personales y establecer automáticamente su estado inicial activo.
 
@@ -915,6 +1313,12 @@ La funcionalidad de consulta permite obtener los clientes registrados mediante b
 
 Además, proporciona la clasificación automática de las membresías según sus fechas de vencimiento y la paginación de cinco registros por página, conservando los filtros aplicados durante la navegación.
 
-Ambos requerimientos cuentan con pruebas automatizadas que verifican sus reglas de negocio, validaciones, permisos y respuestas de la API.
+La funcionalidad de actualización de clientes permite modificar parcialmente los datos personales y de contacto, validar la unicidad del documento y gestionar el estado del cliente.
 
-El módulo se encuentra preparado para continuar con los siguientes requerimientos funcionales relacionados con la actualización y gestión de clientes.
+El módulo dispone de dos operaciones independientes: una para actualizar la información del cliente, incluyendo opcionalmente su estado, y otra para cambiar exclusivamente su estado.
+
+Los clientes deshabilitados conservan su información y el historial de membresías adquiridas, y pueden habilitarse nuevamente cuando corresponda.
+
+Los requerimientos RF7, RF8 y RF9 cuentan con pruebas automatizadas que verifican sus reglas de negocio, validaciones, permisos y respuestas de la API.
+
+El módulo de clientes cuenta actualmente con 79 pruebas automatizadas y 430 aserciones superadas. La suite completa del proyecto registra 264 pruebas exitosas y 1240 aserciones.
