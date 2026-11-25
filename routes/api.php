@@ -44,6 +44,12 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
         [ClienteController::class, 'cambiarEstado']
     )->name('cliente.estado');
 
+    // RF10: Consultar información de membresías del cliente.
+    Route::get(
+        '/clientes/{cliente}/membresias',
+        [MembresiaAdquiridaController::class, 'porCliente']
+    )->name('cliente.membresias.index');
+
     // RF11: Registrar tipo de membresía
     Route::post(
         '/tipos-membresia',

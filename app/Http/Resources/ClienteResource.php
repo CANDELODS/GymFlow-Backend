@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\EstadoMembresia;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -45,29 +46,8 @@ class ClienteResource extends JsonResource
      */
     private function calcularEstadoMembresia(): string
     {
-        // Si el cliente no tiene membresías adquiridas, indicamos que no tiene membresía.
-        if (!$this->ultimaMembresiaAdquirida) {
-            return 'sin_membresia';
-        }
-
-        // Obtenemos la fecha de vencimiento de la última membresía.
-        $fechaVencimiento = $this->ultimaMembresiaAdquirida
-            ->fecha_vencimiento
-            ->toDateString();
-
-        // Obtenemos la fecha actual y el límite de los próximos diez días.
-        $hoy = now()->toDateString();
-        $limite = now()->addDays(10)->toDateString();
-
-        // Determinamos el estado según la fecha de vencimiento.
-        if ($fechaVencimiento < $hoy) {
-            return 'vencida';
-        }
-
-        if ($fechaVencimiento <= $limite) {
-            return 'por_vencer';
-        }
-
-        return 'activa';
+        return EstadoMembresia::calcular(
+            $this->ultimaMembresiaAdquirida?->fecha_vencimiento
+        );
     }
 }
