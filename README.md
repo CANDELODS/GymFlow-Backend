@@ -50,6 +50,7 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 - [x] **RF7 -- Registrar cliente:** registro de clientes mediante sus datos personales y de contacto, validación de la autorización para el tratamiento de datos personales y asignación automática del estado activo. Permite registrar opcionalmente la primera membresía del cliente en la misma solicitud, reutilizando las reglas y la lógica de registro de membresías adquiridas. Si los datos de la membresía no son válidos, el cliente permanece registrado.
 - [x] **RF8 -- Consultar clientes:** consulta de clientes registrados para dueños y empleados, con búsqueda por nombres, apellidos, documento y teléfono mediante coincidencias parciales. Incluye filtros por estado del cliente y estado de la última membresía adquirida, clasificación automática de membresías según su fecha de vencimiento y paginación de cinco registros por página.
 - [x] **RF9 -- Actualizar y gestionar estado del cliente:** actualización parcial de nombres, apellidos, documento y teléfono, con validación de unicidad del documento. Permite modificar opcionalmente el estado durante la actualización y también habilitar o deshabilitar clientes mediante un endpoint específico. Conserva la autorización para el tratamiento de datos personales y los registros históricos de membresías. Acceso para dueños y empleados.
+- [x] **RF10 -- Consultar información de membresía del cliente:** consulta de la membresía vigente y del historial de adquisiciones de un cliente específico. Presenta la membresía vigente de forma independiente del historial, clasifica el estado de cada adquisición según su fecha de vencimiento y conserva la información del usuario administrativo responsable del registro. El historial se ordena desde la adquisición más reciente y se pagina de cinco registros por página. Permite consultar clientes inactivos y contempla respuestas informativas cuando no existen membresías vigentes o adquisiciones registradas. Acceso para dueños y empleados.
 - [x] **RF11 -- Registrar tipo de membresía:** registro de tipos de membresía mediante la definición de su nombre, duración y precio, con validación de unicidad, restricciones sobre los valores y habilitación automática del tipo registrado.
 - [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 - [x] **RF13 -- Actualizar y gestionar el estado de tipos de membresía:** actualización parcial o simultánea del nombre, duración, precio y estado; activación y desactivación mediante un endpoint específico. Acceso para dueños y empleados, con validación de datos y protección de cuentas inactivas.
@@ -147,7 +148,7 @@ La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](doc
 | [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
 | [Tipos de membresía](docs/modulos/tipos-membresia.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de gestión de tipos de membresía. |
 | [Membresías adquiridas](docs/modulos/membresias-adquiridas.md) | Implementación, componentes, reglas de negocio, validaciones y pruebas del módulo de registro de membresías adquiridas. |
-| [Clientes](docs/modulos/cliente.md) | Implementación, componentes, validaciones, autorización, registro, consulta, actualización, gestión del estado, filtros y pruebas del módulo de clientes. |
+| [Clientes](docs/modulos/cliente.md) | Implementación, componentes, validaciones, autorización, registro, consulta, actualización, gestión del estado, consulta de membresías, filtros y pruebas del módulo de clientes. |
 
 La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
 
@@ -267,7 +268,7 @@ herd php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 264 passed (1240 assertions)
+Tests: 278 passed (1299 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -320,6 +321,14 @@ Las pruebas actuales incluyen:
 - Restricción del cambio de estado a la modificación exclusiva del atributo `activo`.
 - Protección de las operaciones de actualización y cambio de estado frente a usuarios no autenticados y cuentas inactivas.
 - Conservación de los datos personales y los registros históricos de membresías al actualizar o cambiar el estado de un cliente.
+- Consulta de la membresía vigente y del historial de adquisiciones de un cliente específico.
+- Protección de la consulta de membresías frente a usuarios no autenticados, cuentas inactivas y roles no autorizados.
+- Consulta del historial de membresías de clientes inactivos.
+- Presentación independiente de la membresía vigente y exclusión de esta del historial para evitar duplicaciones.
+- Clasificación automática del estado de las membresías adquiridas: activa, por vencer o vencida.
+- Conservación de la información del usuario administrativo responsable de cada adquisición, incluso cuando su cuenta está inactiva.
+- Ordenamiento del historial desde la adquisición más reciente y paginación de cinco registros por página.
+- Validación de los parámetros de paginación y respuestas informativas cuando no existen membresías vigentes o adquisiciones registradas.
 - Registro de tipos de membresía para dueños y empleados.
 - Validación de datos, unicidad del nombre, longitud y precisión decimal de los tipos de membresía.
 - Protección del registro de tipos de membresía frente a usuarios no autenticados e inactivos.
@@ -358,6 +367,7 @@ Actualmente se han completado la implementación y validación de los siguientes
 - **RF7:** Registrar cliente.
 - **RF8:** Consultar clientes.
 - **RF9:** Actualizar y gestionar el estado del cliente.
+- **RF10:** Consultar información de membresía del cliente.
 - **RF11:** Registrar tipo de membresía.
 - **RF12:** Consultar tipos de membresía.
 - **RF13:** Actualizar y gestionar el estado de tipos de membresía.
