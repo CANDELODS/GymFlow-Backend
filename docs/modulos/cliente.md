@@ -12,7 +12,11 @@ El registro de la membresía es independiente de la creación del cliente. Si lo
 
 Adicionalmente, el módulo permite consultar los clientes registrados mediante búsqueda y filtros, facilitando la identificación de clientes y el seguimiento del estado de sus membresías adquiridas.
 
-La consulta contempla la última membresía adquirida por cada cliente, cuyo estado se determina automáticamente según su fecha de vencimiento.
+La consulta de clientes contempla la última membresía adquirida por cada cliente, cuyo estado se determina automáticamente según su fecha de vencimiento.
+
+El módulo también permite consultar la información de membresías de un cliente específico. Esta operación presenta de manera independiente la membresía vigente, cuando existe, y el historial completo de adquisiciones del cliente, incluyendo el usuario administrativo responsable de cada registro.
+
+El historial se ordena desde la adquisición más reciente y se presenta mediante paginación de cinco registros por página. Los clientes que no tienen una membresía vigente pueden consultar igualmente sus adquisiciones anteriores, incluso cuando se encuentran deshabilitados.
 
 El módulo también permite actualizar la información de los clientes registrados y gestionar su estado. Los usuarios administrativos pueden modificar los nombres, apellidos, documento y teléfono, así como habilitar o deshabilitar un cliente.
 
@@ -41,6 +45,14 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 - Consulta de la última membresía adquirida de cada cliente.
 - Paginación de cinco registros por página y conservación de filtros entre páginas.
 - Validación de los parámetros de búsqueda, filtrado y paginación.
+- Consulta de la membresía vigente y del historial de adquisiciones de un cliente específico.
+- Separación de la membresía vigente y el historial para evitar mostrar dos veces la misma adquisición.
+- Ordenamiento del historial desde la adquisición más reciente.
+- Paginación del historial de cinco registros por página.
+- Consulta de la información del usuario administrativo responsable de cada adquisición.
+- Consulta del historial de membresías de clientes deshabilitados.
+- Clasificación automática del estado de cada membresía adquirida.
+- Validación del parámetro de paginación del historial.
 - Actualización parcial de la información de clientes.
 - Validación de unicidad del documento al actualizar un cliente, excluyendo su propio registro.
 - Actualización opcional del estado durante la modificación de información.
@@ -48,7 +60,7 @@ Las operaciones del módulo están disponibles para usuarios administrativos con
 - Conservación de la autorización para el tratamiento de datos personales y su fecha durante las actualizaciones.
 - Conservación de los registros históricos de membresías al actualizar o cambiar el estado de un cliente.
 - Posibilidad de habilitar nuevamente clientes previamente deshabilitados.
-- Validación automatizada de los escenarios de registro, consulta, actualización y gestión del estado de clientes.
+- Validación automatizada de los escenarios de registro, consulta, actualización, gestión del estado y consulta de membresías.
 
 ## 2. Tecnologías utilizadas
 
@@ -126,6 +138,26 @@ Permite realizar la operación a usuarios autenticados con rol `dueno` o `emplea
 El Form Request centraliza la validación de los parámetros de consulta y evita que se ejecuten búsquedas con valores inválidos.
 
 También proporciona mensajes de validación personalizados en español.
+
+### ConsultarMembresiasClienteRequest
+
+Archivo: `app/Http/Requests/Cliente/ConsultarMembresiasClienteRequest.php`
+
+Valida y autoriza las solicitudes destinadas a consultar la información de membresías de un cliente específico.
+
+**Autorización:**
+
+Permite realizar la operación a usuarios autenticados con rol `dueno` o `empleado`.
+
+**Parámetros validados:**
+
+- `page`: opcional, debe ser un número entero mayor o igual a 1. Permite especificar la página del historial que se desea consultar.
+
+El cliente se identifica mediante el parámetro de ruta `{cliente}`, resuelto por Laravel mediante model binding.
+
+La consulta no exige que el cliente se encuentre activo. Esto permite consultar sus adquisiciones históricas incluso cuando su cuenta ha sido deshabilitada.
+
+El Form Request centraliza la validación del parámetro de paginación y proporciona mensajes personalizados en español.
 
 ### ActualizarClienteRequest
 
@@ -221,6 +253,31 @@ La acción utiliza `whereHas()` para filtrar según la relación `ultimaMembresi
 
 La paginación conserva los filtros aplicados, permitiendo navegar entre páginas sin perder los criterios de búsqueda.
 
+### ConsultarMembresiasCliente
+
+Archivo: `app/Actions/Cliente/ConsultarMembresiasCliente.php`
+
+Centraliza la consulta de la membresía vigente y el historial de adquisiciones de un cliente específico.
+
+Responsabilidades:
+
+1. Recibir la instancia del cliente que se desea consultar.
+2. Obtener la última membresía adquirida mediante la relación `ultimaMembresiaAdquirida`.
+3. Cargar anticipadamente la relación `usuarioRegistro` para disponer de la información del usuario administrativo responsable.
+4. Comprobar si la última adquisición continúa vigente, comparando su fecha de vencimiento con la fecha actual.
+5. Identificar la membresía vigente cuando existe.
+6. Consultar las adquisiciones asociadas al cliente y cargar la información de sus usuarios responsables.
+7. Ordenar el historial desde la adquisición más reciente.
+8. Excluir del historial la membresía vigente cuando existe, evitando duplicarla en la respuesta.
+9. Paginar el historial de cinco en cinco registros y conservar los parámetros de consulta.
+10. Devolver la membresía vigente y el historial paginado.
+
+La membresía se considera vigente cuando su fecha de vencimiento es igual o posterior a la fecha actual.
+
+Cuando existe una membresía vigente, esta se presenta de manera independiente y se excluye del historial. Cuando no existe, todas las adquisiciones del cliente forman parte del historial.
+
+La consulta no depende del estado activo del cliente, por lo que permite recuperar información histórica de clientes deshabilitados.
+
 ### ActualizarCliente
 
 Archivo: `app/Actions/Cliente/ActualizarCliente.php`
@@ -254,6 +311,22 @@ Responsabilidades:
 La acción utiliza `update()` para modificar únicamente el atributo `activo` y `refresh()` para devolver el modelo actualizado.
 
 Esta operación no modifica los datos personales ni los registros históricos de membresías adquiridas asociados al cliente.
+
+### EstadoMembresia
+
+Archivo: `app/Support/EstadoMembresia.php`
+
+Centraliza la lógica utilizada para determinar el estado de una membresía adquirida según su fecha de vencimiento.
+
+Esta clase evita duplicar los criterios de clasificación en los recursos que necesitan presentar el estado de una membresía.
+
+La clasificación contempla los siguientes estados:
+
+- `activa`: cuando la fecha de vencimiento es posterior a los próximos diez días.
+- `por_vencer`: cuando la fecha de vencimiento se encuentra entre el día actual y los próximos diez días, incluyendo ambos límites.
+- `vencida`: cuando la fecha de vencimiento es anterior al día actual.
+
+La comparación se realiza tomando como referencia la fecha actual del backend y considerando únicamente la fecha de vencimiento.
 
 ### ClienteController
 
@@ -332,18 +405,74 @@ Adicionalmente, cuando la relación `ultimaMembresiaAdquirida` ha sido cargada, 
 - `membresia`: contiene la información de la última membresía adquirida mediante `MembresiaAdquiridaResource`. Si el cliente no tiene adquisiciones, devuelve `null`.
 - `estado_membresia`: contiene el estado calculado de la última membresía adquirida.
 
-El estado de la membresía se determina en el Resource mediante la fecha de vencimiento, utilizando los mismos criterios establecidos para la consulta:
-
-- `activa`
-- `por_vencer`
-- `vencida`
-- `sin_membresia`
+El estado de la membresía se determina utilizando `EstadoMembresia` y los criterios establecidos para la clasificación.
 
 El Resource utiliza `whenLoaded()` para incluir la información de la membresía únicamente cuando la relación ha sido cargada previamente.
 
 Esto permite reutilizar el mismo recurso tanto en el registro de clientes como en su consulta, sin generar consultas adicionales innecesarias.
 
 No se expone información interna adicional del modelo, como los campos de marcas de tiempo de Eloquent.
+
+### MembresiaAdquiridaController
+
+Archivo: `app/Http/Controllers/MembresiaAdquiridaController.php`
+
+Coordina las solicitudes HTTP relacionadas con el registro de membresías adquiridas y la consulta de membresías de un cliente.
+
+Implementa los métodos `store()` y `porCliente()`.
+
+**Responsabilidades de `store()`:**
+
+1. Recibir la solicitud mediante `RegistrarMembresiaAdquiridaRequest`.
+2. Obtener los datos previamente validados.
+3. Ejecutar la acción `RegistrarMembresiaAdquirida`.
+4. Transformar la adquisición mediante `MembresiaAdquiridaResource`.
+5. Devolver una respuesta JSON con el resultado del registro.
+
+**Responsabilidades de `porCliente()`:**
+
+1. Recibir la solicitud mediante `ConsultarMembresiasClienteRequest`.
+2. Recibir el cliente correspondiente mediante model binding.
+3. Obtener los parámetros previamente validados.
+4. Ejecutar la acción `ConsultarMembresiasCliente`.
+5. Transformar la membresía vigente mediante `MembresiaAdquiridaResource`, cuando existe.
+6. Transformar los registros del historial mediante `MembresiaAdquiridaResource::collection()`.
+7. Resolver la colección del Resource mediante `resolve($request)` para obtener los datos ya transformados antes de incorporarlos a la respuesta personalizada.
+8. Devolver la membresía vigente, el historial y la información de paginación en una respuesta JSON.
+
+El uso de `resolve($request)` permite obtener el arreglo resultante de la transformación del Resource, en lugar de incluir directamente el objeto de la colección dentro de la respuesta personalizada.
+
+De esta manera, el controlador puede construir una estructura que contiene tanto la membresía vigente como el historial, conservando los enlaces y metadatos de paginación generados por Laravel.
+
+### MembresiaAdquiridaResource
+
+Archivo: `app/Http/Resources/MembresiaAdquiridaResource.php`
+
+Transforma el modelo `MembresiaAdquirida` en una respuesta JSON controlada.
+
+Expone los datos correspondientes a:
+
+- `id_membresia_adquirida`
+- `id_cliente`
+- `id_tipo_membresia`
+- `id_usuario_registro`
+- `nombre_tipo_snapshot`
+- `duracion_dias_snapshot`
+- `fecha_inicio`
+- `fecha_vencimiento`
+- `valor_pagado`
+- `metodo_pago`
+
+Adicionalmente, incorpora:
+
+- `estado`: contiene el estado calculado de la membresía mediante `EstadoMembresia`.
+- `usuario_registro`: contiene la información del usuario administrativo responsable de registrar la adquisición, cuando la relación `usuarioRegistro` ha sido cargada.
+
+La información del usuario responsable incluye su identificador, nombre de usuario, rol y estado activo.
+
+La relación se presenta mediante `whenLoaded()`, por lo que solamente se incluye cuando ha sido cargada previamente. Esto permite conservar el comportamiento de las respuestas existentes que utilizan el mismo Resource sin cargar la relación del usuario responsable.
+
+La información histórica del usuario administrativo se conserva incluso cuando su cuenta se encuentra deshabilitada.
 
 ### ReglasMembresiaAdquirida
 
@@ -396,7 +525,7 @@ El proceso sigue este orden:
 8. La acción crea el cliente, establece su estado inicial activo y registra la fecha de autorización.
 9. `ClienteResource` transforma el modelo registrado.
 10. El controlador comprueba si se solicitó registrar una primera membresía.
-11. Si no se solicitó una membresía, el backend devuelve HTTP `201 Created` con los datos del cliente.
+11. Si no se solicitó una membresía, el backend devuelve HTTP `201 Created` con la información del cliente.
 12. Si se solicitó una membresía, el controlador valida sus datos y ejecuta la acción `RegistrarMembresiaAdquirida` cuando son válidos.
 13. El backend devuelve HTTP `201 Created` con el resultado del registro del cliente y, cuando corresponde, los datos de la membresía adquirida.
 
@@ -706,7 +835,204 @@ Cuando no existen resultados, la API devuelve HTTP `200 OK` con una colección v
 | `403 Forbidden` | La cuenta del usuario está desactivada o no tiene autorización para realizar la operación. |
 | `422 Unprocessable Entity` | Uno o varios parámetros de búsqueda, filtrado o paginación incumplen las reglas de validación. |
 
-### 4.3. Actualización de clientes
+### 4.3. Consulta de membresías de un cliente
+
+La consulta de membresías de un cliente se realiza mediante una solicitud HTTP `GET`.
+
+#### Endpoint
+
+`GET /api/clientes/{cliente}/membresias`
+
+**Middlewares aplicados:**
+
+- `auth:sanctum`: requiere autenticación.
+- `usuario.activo`: impide el acceso a cuentas desactivadas.
+
+La autorización por rol se realiza mediante `ConsultarMembresiasClienteRequest`, que permite únicamente a usuarios con rol `dueno` o `empleado`.
+
+**Nombre de ruta:**
+
+`cliente.membresias.index`
+
+#### Parámetros de consulta
+
+La consulta admite el siguiente parámetro opcional:
+
+| Parámetro | Tipo | Descripción | Valores permitidos |
+|---|---|---|---|
+| `page` | Integer | Especifica la página del historial que se desea consultar. | Entero mayor o igual a 1. |
+
+El identificador del cliente se proporciona mediante el parámetro de ruta `{cliente}`.
+
+#### Ejemplos de consulta
+
+**Consultar las membresías de un cliente:**
+
+```http
+GET /api/clientes/1/membresias
+```
+
+**Consultar la segunda página del historial:**
+
+```http
+GET /api/clientes/1/membresias?page=2
+```
+
+#### Proceso de consulta
+
+El proceso sigue este orden:
+
+1. El usuario administrativo selecciona un cliente registrado.
+2. El frontend envía una solicitud `GET /api/clientes/{cliente}/membresias`, incluyendo opcionalmente el parámetro de paginación.
+3. Laravel comprueba la autenticación mediante `auth:sanctum`.
+4. El middleware `VerificarUsuarioActivo` comprueba que la cuenta del usuario administrativo continúe activa.
+5. Laravel identifica al cliente mediante model binding.
+6. `ConsultarMembresiasClienteRequest` autoriza la operación y valida los parámetros recibidos.
+7. `MembresiaAdquiridaController` obtiene los datos previamente validados.
+8. El controlador ejecuta la acción `ConsultarMembresiasCliente`.
+9. La acción consulta la última adquisición y comprueba si continúa vigente.
+10. Cuando existe una membresía vigente, la separa del historial para evitar duplicarla.
+11. La acción consulta las adquisiciones del cliente, incluyendo la relación `usuarioRegistro`.
+12. El historial se ordena desde la adquisición más reciente y se pagina de cinco en cinco.
+13. `MembresiaAdquiridaResource` transforma la membresía vigente y los registros del historial.
+14. El controlador utiliza `resolve($request)` para obtener los datos transformados de la colección y construir la respuesta JSON personalizada.
+15. El backend devuelve HTTP `200 OK` con la membresía vigente, cuando existe, y el historial paginado.
+
+La consulta no exige que el cliente se encuentre activo. Por lo tanto, también es posible consultar las adquisiciones de clientes deshabilitados.
+
+#### Membresía vigente
+
+Cuando el cliente tiene una adquisición vigente, esta se presenta en el campo `membresia_vigente`.
+
+Se considera vigente cuando la fecha de vencimiento es igual o posterior a la fecha actual.
+
+Si el cliente no tiene una membresía vigente, el campo devuelve `null`.
+
+La membresía vigente no se incluye nuevamente dentro del historial.
+
+#### Historial de adquisiciones
+
+El historial contiene las adquisiciones anteriores del cliente y también incluye la última adquisición cuando esta se encuentra vencida.
+
+Los registros se ordenan desde la adquisición más reciente, utilizando la fecha de inicio y criterios adicionales de ordenamiento para mantener resultados consistentes.
+
+El historial se pagina de cinco en cinco registros y conserva los parámetros de consulta mediante `withQueryString()`.
+
+Cuando el cliente no tiene adquisiciones, el historial devuelve una colección vacía.
+
+#### Estado de las membresías
+
+Cada adquisición incluye el campo `estado`, calculado mediante `EstadoMembresia`.
+
+| Estado | Condición |
+|---|---|
+| `activa` | La fecha de vencimiento es posterior a los próximos diez días. |
+| `por_vencer` | La fecha de vencimiento se encuentra entre hoy y los próximos diez días, incluyendo ambos límites. |
+| `vencida` | La fecha de vencimiento es anterior al día actual. |
+
+La clasificación utiliza la fecha actual del backend y compara únicamente la fecha de vencimiento.
+
+#### Usuario responsable de la adquisición
+
+Cada adquisición incluye el campo `usuario_registro`, que contiene la información del usuario administrativo responsable de registrar la membresía.
+
+La información contempla:
+
+- `id_usuario`: identificador del usuario administrativo.
+- `usuario`: nombre de usuario.
+- `rol`: rol del usuario.
+- `activo`: estado actual de la cuenta administrativa.
+
+La relación `usuarioRegistro` se carga anticipadamente mediante Eloquent para evitar consultas adicionales al transformar los recursos.
+
+La información del responsable se conserva aunque su cuenta administrativa haya sido deshabilitada.
+
+#### Respuesta exitosa
+
+La API devuelve HTTP `200 OK`.
+
+**Ejemplo de respuesta con membresía vigente e historial:**
+
+```json
+{
+    "mensaje": "Información de membresías consultada correctamente.",
+    "membresia_vigente": {
+        "id_membresia_adquirida": 2,
+        "id_cliente": 1,
+        "id_tipo_membresia": 1,
+        "id_usuario_registro": 1,
+        "nombre_tipo_snapshot": "Mensual",
+        "duracion_dias_snapshot": 30,
+        "fecha_inicio": "2026-11-17",
+        "fecha_vencimiento": "2026-12-16 23:59:59",
+        "valor_pagado": "80000.00",
+        "metodo_pago": "efectivo",
+        "estado": "activa",
+        "usuario_registro": {
+            "id_usuario": 1,
+            "usuario": "admin",
+            "rol": "dueno",
+            "activo": true
+        }
+    },
+    "historial": {
+        "data": [
+            {
+                "id_membresia_adquirida": 1,
+                "id_cliente": 1,
+                "id_tipo_membresia": 1,
+                "id_usuario_registro": 1,
+                "nombre_tipo_snapshot": "Mensual",
+                "duracion_dias_snapshot": 30,
+                "fecha_inicio": "2026-10-17",
+                "fecha_vencimiento": "2026-11-15 23:59:59",
+                "valor_pagado": "80000.00",
+                "metodo_pago": "efectivo",
+                "estado": "vencida",
+                "usuario_registro": {
+                    "id_usuario": 1,
+                    "usuario": "admin",
+                    "rol": "dueno",
+                    "activo": true
+                }
+            }
+        ],
+        "links": {
+            "first": "http://localhost/api/clientes/1/membresias?page=1",
+            "last": "http://localhost/api/clientes/1/membresias?page=1",
+            "prev": null,
+            "next": null
+        },
+        "meta": {
+            "current_page": 1,
+            "from": 1,
+            "last_page": 1,
+            "links": [],
+            "path": "http://localhost/api/clientes/1/membresias",
+            "per_page": 5,
+            "to": 1,
+            "total": 1
+        }
+    }
+}
+```
+
+Los valores son ilustrativos y representan la estructura de la respuesta.
+
+Cuando el cliente no tiene una membresía vigente, `membresia_vigente` devuelve `null` y el historial conserva las adquisiciones existentes.
+
+Cuando el cliente no tiene adquisiciones registradas, la respuesta incluye `membresia_vigente` con valor `null` y un historial vacío.
+
+#### Respuestas de error
+
+| Código HTTP | Situación |
+|---|---|
+| `401 Unauthorized` | El usuario no está autenticado. |
+| `403 Forbidden` | La cuenta del usuario está desactivada o no tiene autorización para realizar la operación. |
+| `404 Not Found` | El cliente solicitado no existe. |
+| `422 Unprocessable Entity` | El parámetro de paginación incumple las reglas de validación. |
+
+### 4.4. Actualización de clientes
 
 La actualización de clientes se realiza mediante una solicitud HTTP `PATCH`.
 
@@ -790,7 +1116,7 @@ La API devuelve HTTP `200 OK`.
 
 Los valores son ilustrativos.
 
-### 4.4. Cambio de estado de clientes
+### 4.5. Cambio de estado de clientes
 
 El cambio de estado de clientes se realiza mediante una solicitud HTTP `PATCH`.
 
@@ -868,12 +1194,13 @@ Los valores son ilustrativos.
 
 ### Autorización por roles
 
-El registro, consulta, actualización y cambio de estado de clientes están permitidos a los usuarios con rol `dueno` y `empleado`.
+El registro, consulta, actualización, cambio de estado y consulta de membresías de clientes están permitidos a los usuarios con rol `dueno` y `empleado`.
 
 La autorización se comprueba mediante los respectivos Form Requests:
 
 - `RegistrarClienteRequest`.
 - `ConsultarClientesRequest`.
+- `ConsultarMembresiasClienteRequest`.
 - `ActualizarClienteRequest`.
 - `CambiarEstadoClienteRequest`.
 
@@ -944,7 +1271,7 @@ El identificador del cliente se obtiene directamente del registro creado y se in
 
 ### Validación de parámetros de consulta
 
-Los parámetros de consulta se validan mediante `ConsultarClientesRequest`.
+Los parámetros de consulta de clientes se validan mediante `ConsultarClientesRequest`.
 
 Las reglas contemplan:
 
@@ -952,6 +1279,8 @@ Las reglas contemplan:
 - `activo`: debe contener un valor booleano válido.
 - `estado_membresia`: debe corresponder a uno de los estados permitidos: `activa`, `por_vencer`, `vencida` o `sin_membresia`.
 - `page`: debe ser un número entero mayor o igual a 1.
+
+La consulta de membresías de un cliente utiliza `ConsultarMembresiasClienteRequest`, que valida el parámetro `page` como un número entero mayor o igual a 1.
 
 No se ejecutan consultas cuando los parámetros recibidos incumplen las reglas de validación.
 
@@ -995,6 +1324,8 @@ Deshabilitar un cliente no implica eliminar su información ni sus registros his
 Las operaciones que requieren un cliente habilitado deben comprobar que su estado `activo` sea verdadero.
 
 Un cliente deshabilitado no debe estar disponible para dichas operaciones, pero puede habilitarse nuevamente mediante el endpoint de cambio de estado.
+
+La consulta de membresías de un cliente no requiere que este se encuentre habilitado, ya que su finalidad es permitir la consulta de la información histórica.
 
 ### Búsqueda de clientes
 
@@ -1042,11 +1373,15 @@ La clasificación se realiza tomando como referencia la fecha actual del backend
 
 La comparación se realiza sobre la fecha, sin considerar la hora del vencimiento.
 
+La lógica de clasificación se centraliza en `EstadoMembresia` para reutilizar los mismos criterios en los recursos que presentan el estado de una membresía.
+
 ### Paginación
 
-Los resultados se devuelven mediante la paginación de Laravel, con un límite de cinco registros por página.
+Los resultados de la consulta de clientes se devuelven mediante la paginación de Laravel, con un límite de cinco registros por página.
 
-Se utiliza `withQueryString()` para conservar los parámetros de búsqueda y filtrado en los enlaces de navegación.
+El historial de adquisiciones también se pagina de cinco en cinco registros.
+
+Se utiliza `withQueryString()` para conservar los parámetros de consulta en los enlaces de navegación.
 
 El parámetro `page` permite consultar una página específica y debe ser un entero mayor o igual a 1.
 
@@ -1072,6 +1407,8 @@ El recurso `ClienteResource` controla los atributos que se exponen en las respue
 
 La información se presenta mediante los campos definidos para el módulo, evitando exponer atributos internos adicionales del modelo.
 
+Los recursos de membresías también controlan los datos que se exponen, incluyendo la información del usuario responsable únicamente cuando la relación ha sido cargada.
+
 ## 6. Rutas API
 
 Las rutas relacionadas con el módulo de clientes se encuentran en:
@@ -1084,6 +1421,7 @@ Actualmente se encuentran implementadas:
 |---|---|---|---|
 | POST | `/api/clientes` | `cliente.store` | Registrar un cliente y, opcionalmente, su primera membresía. |
 | GET | `/api/clientes` | `cliente.index` | Consultar clientes mediante búsqueda, filtros y paginación. |
+| GET | `/api/clientes/{cliente}/membresias` | `cliente.membresias.index` | Consultar la membresía vigente y el historial de adquisiciones de un cliente. |
 | PATCH | `/api/clientes/{cliente}` | `cliente.update` | Actualizar parcialmente la información del cliente y, opcionalmente, su estado. |
 | PATCH | `/api/clientes/{cliente}/estado` | `cliente.estado` | Cambiar exclusivamente el estado del cliente. |
 
@@ -1185,6 +1523,29 @@ Se implementaron 30 pruebas mediante PHPUnit para verificar los permisos, la bú
 - Comprobar que una búsqueda sin coincidencias devuelva una colección vacía.
 - Comprobar que la consulta funcione cuando no existen clientes registrados.
 
+### Pruebas de consulta de membresías de clientes
+
+Archivo: `tests/Feature/MembresiaAdquirida/ConsultarMembresiasClienteTest.php`
+
+Se implementaron 14 pruebas mediante PHPUnit para verificar los permisos, la consulta de la membresía vigente, el historial de adquisiciones, la clasificación de estados, la información del usuario responsable y la paginación.
+
+**Escenarios comprobados:**
+
+1. Un dueño puede consultar las membresías de un cliente.
+2. Un empleado puede consultar las membresías de un cliente.
+3. Un usuario no autenticado no puede consultar membresías.
+4. Un usuario inactivo no puede consultar membresías.
+5. No se pueden consultar membresías de un cliente inexistente.
+6. Se pueden consultar las membresías de un cliente inactivo.
+7. Un cliente sin membresías adquiridas recibe un historial vacío.
+8. La membresía vigente se muestra separada del historial.
+9. Se calcula correctamente el estado de las membresías.
+10. Se conserva la información del usuario que registró la adquisición.
+11. El historial se ordena desde la adquisición más reciente.
+12. El historial se pagina de cinco en cinco registros.
+13. No se puede consultar una página menor que uno.
+14. No se puede consultar una página que no sea entera.
+
 ### Pruebas de actualización de clientes
 
 Archivo: `tests/Feature/Cliente/ActualizarClienteTest.php`
@@ -1243,6 +1604,12 @@ Para ejecutar las pruebas de consulta:
 herd php artisan test --filter=ConsultarClientesTest
 ```
 
+Para ejecutar las pruebas de consulta de membresías:
+
+```bash
+herd php artisan test --filter=ConsultarMembresiasClienteTest
+```
+
 Para ejecutar las pruebas de actualización:
 
 ```bash
@@ -1255,10 +1622,16 @@ Para ejecutar las pruebas de cambio de estado:
 herd php artisan test --filter=CambiarEstadoClienteTest
 ```
 
-Para ejecutar todas las pruebas del módulo:
+Para ejecutar todas las pruebas del módulo de clientes:
 
 ```bash
 herd php artisan test tests/Feature/Cliente
+```
+
+Para ejecutar todas las pruebas del módulo de membresías adquiridas:
+
+```bash
+herd php artisan test tests/Feature/MembresiaAdquirida
 ```
 
 Para ejecutar todas las pruebas del proyecto:
@@ -1295,15 +1668,21 @@ Tests: 16 passed (74 assertions)
 Tests: 10 passed (31 assertions)
 ```
 
-**Resultado consolidado del módulo de clientes:**
+**Consulta de membresías de clientes:**
 
 ```text
-Tests: 79 passed (430 assertions)
+Tests: 14 passed (59 assertions)
+```
+
+**Resultado consolidado de las funcionalidades documentadas del módulo de clientes:**
+
+```text
+Tests: 93 passed (489 assertions)
 ```
 
 ## 8. Estado del módulo
 
-El módulo de gestión de clientes cuenta con las funcionalidades de registro (RF7), consulta (RF8) y actualización y gestión del estado (RF9), implementadas y validadas mediante pruebas automatizadas.
+El módulo de gestión de clientes cuenta con las funcionalidades de registro (RF7), consulta (RF8), actualización y gestión del estado (RF9), y consulta de información de membresías (RF10), implementadas y validadas mediante pruebas automatizadas.
 
 La funcionalidad de registro permite crear clientes con sus datos personales y de contacto, exigir la autorización para el tratamiento de datos personales y establecer automáticamente su estado inicial activo.
 
@@ -1313,12 +1692,18 @@ La funcionalidad de consulta permite obtener los clientes registrados mediante b
 
 Además, proporciona la clasificación automática de las membresías según sus fechas de vencimiento y la paginación de cinco registros por página, conservando los filtros aplicados durante la navegación.
 
+La funcionalidad de consulta de membresías permite obtener la membresía vigente de un cliente, cuando existe, y consultar su historial completo de adquisiciones.
+
+El historial se presenta de forma independiente a la membresía vigente, se ordena desde la adquisición más reciente y se pagina de cinco en cinco registros. Cada adquisición incluye la información del usuario administrativo responsable de su registro.
+
+La consulta del historial está disponible incluso para clientes deshabilitados y conserva la información de los usuarios responsables aunque sus cuentas administrativas se encuentren inactivas.
+
 La funcionalidad de actualización de clientes permite modificar parcialmente los datos personales y de contacto, validar la unicidad del documento y gestionar el estado del cliente.
 
 El módulo dispone de dos operaciones independientes: una para actualizar la información del cliente, incluyendo opcionalmente su estado, y otra para cambiar exclusivamente su estado.
 
 Los clientes deshabilitados conservan su información y el historial de membresías adquiridas, y pueden habilitarse nuevamente cuando corresponda.
 
-Los requerimientos RF7, RF8 y RF9 cuentan con pruebas automatizadas que verifican sus reglas de negocio, validaciones, permisos y respuestas de la API.
+Los requerimientos RF7, RF8, RF9 y RF10 cuentan con pruebas automatizadas que verifican sus reglas de negocio, validaciones, permisos y respuestas de la API.
 
-El módulo de clientes cuenta actualmente con 79 pruebas automatizadas y 430 aserciones superadas. La suite completa del proyecto registra 264 pruebas exitosas y 1240 aserciones.
+El módulo cuenta con 93 pruebas automatizadas y 489 aserciones superadas en las funcionalidades documentadas.

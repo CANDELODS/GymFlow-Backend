@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\EstadoMembresia;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,20 @@ class MembresiaAdquiridaResource extends JsonResource
             'fecha_vencimiento' => $this->fecha_vencimiento?->format('Y-m-d H:i:s'),
             'valor_pagado' => $this->valor_pagado,
             'metodo_pago' => $this->metodo_pago,
+
+            // Estado calculado de la membresía adquirida.
+            'estado' => EstadoMembresia::calcular($this->fecha_vencimiento),
+
+            // Información del usuario administrativo que registró la adquisición.
+            'usuario_registro' => $this->whenLoaded(
+                'usuarioRegistro',
+                fn() => $this->usuarioRegistro ? [
+                    'id_usuario' => $this->usuarioRegistro->id_usuario,
+                    'usuario' => $this->usuarioRegistro->usuario,
+                    'rol' => $this->usuarioRegistro->rol,
+                    'activo' => $this->usuarioRegistro->activo,
+                ] : null
+            ),
         ];
     }
 }
