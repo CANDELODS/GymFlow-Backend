@@ -44,6 +44,31 @@ class MembresiaAdquiridaResource extends JsonResource
                     'activo' => $this->usuarioRegistro->activo,
                 ] : null
             ),
+
+            // Información del cliente asociado.
+            'cliente' => $this->whenLoaded(
+                'cliente',
+                fn() => $this->cliente ? [
+                    'id_cliente' => $this->cliente->id_cliente,
+                    'nombres' => $this->cliente->nombres,
+                    'apellidos' => $this->cliente->apellidos,
+                    'documento' => $this->cliente->documento,
+                    'activo' => $this->cliente->activo,
+                ] : null
+            ),
+
+            // Información del tipo de membresía asociado.
+            'tipo_membresia' => $this->whenLoaded(
+                'tipoMembresia',
+                fn() => $this->tipoMembresia ? [
+                    'id_tipo_membresia' => $this->tipoMembresia->id_tipo_membresia,
+                    'nombre' => $this->tipoMembresia->nombre,
+                    'duracion_dias' => $this->tipoMembresia->duracion_dias,
+                    'precio' => $this->tipoMembresia->precio,
+                    'activo' => $this->tipoMembresia->activo,
+                ] : null
+            ),
+
         ];
     }
 }

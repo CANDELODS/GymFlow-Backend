@@ -55,10 +55,10 @@ El desarrollo se organiza mediante requerimientos funcionales (RF), implementado
 - [x] **RF12 -- Consultar tipos de membresía:** consulta de tipos registrados para dueños y empleados, con búsqueda por coincidencias parciales del nombre, filtros por estado y paginación de cinco registros por página.
 - [x] **RF13 -- Actualizar y gestionar el estado de tipos de membresía:** actualización parcial o simultánea del nombre, duración, precio y estado; activación y desactivación mediante un endpoint específico. Acceso para dueños y empleados, con validación de datos y protección de cuentas inactivas.
 - [x] **RF14 -- Registrar membresía adquirida:** registro de membresías para clientes activos mediante la selección de un tipo de membresía disponible, fecha de inicio, valor pagado y método de pago. El sistema calcula automáticamente la fecha de vencimiento y conserva snapshots del nombre y duración del tipo de membresía para proteger el historial de las adquisiciones. Incluye control de concurrencia durante el registro y la desactivación de tipos de membresía.
+- [x] **RF15 -- Actualizar membresía adquirida:** actualización parcial o simultánea del cliente, tipo de membresía, fecha de inicio, valor pagado y método de pago. El sistema recalcula la fecha de vencimiento cuando cambia la fecha de inicio o el tipo de membresía, actualiza los snapshots correspondientes y registra los cambios realizados mediante un sistema de auditoría que conserva el usuario responsable, el motivo y los valores anteriores y nuevos. Acceso exclusivo para dueños.
 
 ### En desarrollo / pendientes
 
-- [ ] Registro y auditoría de modificaciones.
 - [ ] Dashboard y reportes administrativos.
 
 Las funcionalidades pendientes se incorporarán progresivamente conforme avance el desarrollo y se validen sus respectivos requerimientos.
@@ -99,6 +99,8 @@ app/
 │   ├── TipoMembresia/
 │   └── UsuarioAdministrativo/
 │
+├── Events/
+├── Listeners/
 ├── Rules/
 │
 └── Http/
@@ -126,6 +128,8 @@ tests/
 ### Responsabilidades principales
 
 - **Actions:** concentran las operaciones y la lógica de aplicación, agrupadas según el módulo al que pertenecen.
+- **Events:** representan acontecimientos relevantes del sistema que pueden desencadenar procesos adicionales.
+- **Listeners:** contienen la lógica que se ejecuta como respuesta a los eventos, como el registro de auditoría de las modificaciones.
 - **Rules:** centralizan reglas de validación reutilizables entre diferentes componentes del sistema.
 - **Controllers:** reciben las solicitudes HTTP, coordinan las acciones correspondientes y construyen las respuestas de la API.
 - **Middleware:** implementa controles transversales, como la verificación del estado de las cuentas y la autorización de acceso.
@@ -147,7 +151,7 @@ La documentación técnica del proyecto se encuentra en la carpeta [`docs/`](doc
 | [Administración de usuarios](docs/modulos/administracion-usuarios.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de administración de usuarios administrativos. |
 | [ADR-001: Autenticación con Sanctum](docs/decisiones/001-autenticacion-sanctum.md) | Decisiones arquitectónicas que justifican el mecanismo de autenticación seleccionado. |
 | [Tipos de membresía](docs/modulos/tipos-membresia.md) | Implementación, componentes, validaciones, autorización y pruebas del módulo de gestión de tipos de membresía. |
-| [Membresías adquiridas](docs/modulos/membresias-adquiridas.md) | Implementación, componentes, reglas de negocio, validaciones y pruebas del módulo de registro de membresías adquiridas. |
+| [Membresías adquiridas](docs/modulos/membresias-adquiridas.md) | Implementación, componentes, reglas de negocio, validaciones y pruebas del módulo de registro y actualización de membresías adquiridas. |
 | [Clientes](docs/modulos/cliente.md) | Implementación, componentes, validaciones, autorización, registro, consulta, actualización, gestión del estado, consulta de membresías, filtros y pruebas del módulo de clientes. |
 
 La documentación se actualizará conforme se implementen y validen nuevos requerimientos funcionales.
@@ -268,7 +272,7 @@ herd php artisan test
 Último resultado registrado:
 
 ```text
-Tests: 278 passed (1299 assertions)
+Tests: 297 passed (1412 assertions)
 ```
 
 Las pruebas actuales incluyen:
@@ -349,6 +353,17 @@ Las pruebas actuales incluyen:
 - Persistencia de los datos históricos de una adquisición al modificar o desactivar su tipo de membresía.
 - Validación de fechas de vencimiento en cambios de mes y año, y de membresías con duración de un día.
 - Control de concurrencia entre el registro de una membresía adquirida y la desactivación de su tipo de membresía.
+- Actualización parcial y simultánea de los campos de una membresía adquirida.
+- Validación de clientes y tipos de membresía existentes y activos durante la actualización.
+- Rechazo de actualizaciones sin campos modificables, con motivos vacíos o con valores pagados negativos.
+- Validación de los métodos de pago permitidos durante la actualización.
+- Rechazo de actualizaciones que no producen cambios reales.
+- Recalculación de la fecha de vencimiento cuando cambia la fecha de inicio o el tipo de membresía.
+- Actualización de los snapshots del tipo de membresía cuando se modifica la membresía adquirida.
+- Restricción de la actualización de membresías adquiridas al rol dueño.
+- Rechazo de actualizaciones sobre membresías adquiridas inexistentes.
+- Registro de auditoría con el usuario responsable, el motivo y los valores anteriores y nuevos de cada campo modificado.
+- Reversión de la actualización y de los registros de auditoría cuando ocurre un error durante la operación.
 
 Cada nuevo requerimiento funcional deberá contar con sus respectivas pruebas antes de considerarse terminado.
 
@@ -372,6 +387,7 @@ Actualmente se han completado la implementación y validación de los siguientes
 - **RF12:** Consultar tipos de membresía.
 - **RF13:** Actualizar y gestionar el estado de tipos de membresía.
 - **RF14:** Registrar membresía adquirida.
+- **RF15:** Actualizar membresía adquirida.
 
 También se encuentra implementada y probada la gestión de expiración de sesiones por inactividad.
 

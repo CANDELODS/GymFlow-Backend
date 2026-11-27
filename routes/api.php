@@ -87,7 +87,7 @@ Route::middleware(['auth:sanctum', 'usuario.activo'])->group(function () {
     )->name('membresias-adquiridas.store');
 });
 
-// Rutas para la administración de usuarios administrativos.
+// Rutas para la administración de usuarios administrativos y actualización de membresías adquiridas.
 Route::middleware(['auth:sanctum', 'usuario.activo', 'rol.administrativo:dueno'])->group(function () {
 
     // RF4: Registrar usuario administrativo.
@@ -110,4 +110,10 @@ Route::middleware(['auth:sanctum', 'usuario.activo', 'rol.administrativo:dueno']
         [UsuarioAdministrativoController::class, 'cambiarEstado']
     )->name('usuarios-administrativos.estado');
     //Usamos Patch y no Put porque ambas operaciones modifican parcialmente un recurso, no todo el recurso.
+
+    // RF15: Actualizar membresía adquirida.
+    Route::patch(
+        '/membresias-adquiridas/{membresiaAdquirida}',
+        [MembresiaAdquiridaController::class, 'update']
+    )->name('membresias-adquiridas.update');
 });
