@@ -46,4 +46,14 @@ class UsuarioAdministrativo extends Authenticatable
             'id_usuario' // Clave local en usuario_administrativo
         );
     }
+
+    // Modificaciones registradas por este usuario administrativo.
+    public function modificacionesRegistradas(): HasMany
+    {
+        return $this->hasMany(
+            RegistroModificacion::class,
+            'id_usuario',
+            'id_usuario'
+        );
+    }
 }

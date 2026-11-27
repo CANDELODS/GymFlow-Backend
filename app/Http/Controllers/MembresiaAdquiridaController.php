@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\MembresiaAdquirida\ActualizarMembresiaAdquirida;
+use App\Http\Requests\MembresiaAdquirida\ActualizarMembresiaAdquiridaRequest;
+use App\Models\MembresiaAdquirida;
 use App\Actions\Cliente\ConsultarMembresiasCliente;
 use App\Actions\MembresiaAdquirida\RegistrarMembresiaAdquirida;
 use App\Http\Requests\Cliente\ConsultarMembresiasClienteRequest;
@@ -31,6 +34,34 @@ class MembresiaAdquiridaController extends Controller
     }
 
     /**
+     * Actualiza una membresía adquirida existente.
+     */
+    public function update(
+        ActualizarMembresiaAdquiridaRequest $request,
+        MembresiaAdquirida $membresiaAdquirida,
+        ActualizarMembresiaAdquirida $actualizarMembresiaAdquirida
+    ) {
+        // Ejecutamos la acción con los datos validados del request.
+        $membresiaActualizada = $actualizarMembresiaAdquirida->ejecutar(
+            $membresiaAdquirida,
+            $request->validated()
+        );
+
+        // Cargamos las relaciones necesarias para devolver la información completa.
+        $membresiaActualizada->load([
+            'cliente', // Relación BelongsTo con cliente
+            'tipoMembresia', // Relación BelongsTo con TipoMembresia
+            'usuarioRegistro', // Relación BelongsTo con UsuarioAdministrativo
+        ]);
+
+        // Devolvemos la membresía actualizada.
+        return response()->json([
+            'mensaje' => 'Membresía adquirida actualizada correctamente.',
+            'membresia_adquirida' => new MembresiaAdquiridaResource($membresiaActualizada),
+        ], 200);
+    }
+
+    /**
      * Consulta la membresía vigente y el historial de adquisiciones de un cliente.
      */
     public function porCliente(
@@ -52,11 +83,11 @@ class MembresiaAdquiridaController extends Controller
         $historial = MembresiaAdquiridaResource::collection(
             $resultado['historial']
         )
-        // response($request) genera la respuesta del Resource Collection,
-        // incluyendo la estructura de paginación de Laravel.
-        // getData(true) nos permite recuperar esa respuesta como un arreglo, con esto logramos
-        // Incluirla dentro de $historial sin perder los enlaces ni metadatos de paginación.
-        ->response($request)->getData(true);
+            // response($request) genera la respuesta del Resource Collection,
+            // incluyendo la estructura de paginación de Laravel.
+            // getData(true) nos permite recuperar esa respuesta como un arreglo, con esto logramos
+            // Incluirla dentro de $historial sin perder los enlaces ni metadatos de paginación.
+            ->response($request)->getData(true);
 
         // Retornamos la información de membresías del cliente.
         return response()->json([

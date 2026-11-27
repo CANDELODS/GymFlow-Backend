@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 
@@ -67,6 +68,16 @@ class MembresiaAdquirida extends Model
             UsuarioAdministrativo::class,
             'id_usuario_registro', // Clave foranea en membresia_adquirida
             'id_usuario' // Clave local en UsuarioAdministrativo
+        );
+    }
+
+    // Relación con los registros de modificaciones de la membresía.
+    public function modificaciones(): HasMany
+    {
+        return $this->hasMany(
+            RegistroModificacion::class,
+            'id_membresia_adquirida',
+            'id_membresia_adquirida'
         );
     }
 }
